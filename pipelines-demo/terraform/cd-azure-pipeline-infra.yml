@@ -1,0 +1,34 @@
+trigger:
+  branches:
+    include:
+      - development
+      - qc
+      - release
+      - master
+
+pool:
+  name: "BTG Colombia - Azure DevOps"
+
+resources:
+  repositories:
+    - repository: devops-master-templates
+      type: git
+      name: devops-master-templates
+      ref: master
+
+variables:
+  
+  - template: aws-deploy/terraform/pipelines/vars.yml@devops-master-templates
+    parameters:
+      account: multiprojects #Cuenta de AWS
+
+  # Variables específicas del proyecto
+  - name: configFilePath
+    value: configFile
+
+  #- group: mi-grupo-de-vars
+
+stages:
+  - template: aws-deploy/terraform/pipelines/deploy.yml@devops-master-templates
+    parameters:
+      action: deploy #deploy ó destroy

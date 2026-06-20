@@ -1,0 +1,68 @@
+parameters:
+  - name: language
+    type: string
+    values:
+      - cs
+      - go
+      - java
+      - node
+      - python
+  - name: work_path
+    type: string
+  - name: containerized
+    type: boolean
+    default: false
+  - name: sonar_qube_svc
+    type: string
+    default: 'SonarQube-v25.9.0.112764'
+  # Parámetros opcionales para proyectos C#.
+  # use_nuget_config: true si el restore requiere --configfile.
+  - name: cs_use_nuget_config
+    type: boolean
+    default: false
+
+stages:
+  - stage: Validate
+    displayName: "Validate Deploy"
+
+    variables:
+      - group: canales-digitales-artifact
+
+    jobs:
+      - job: validate
+        displayName: "✅ Validate Deploy ✅"
+        steps:
+          - checkout: self
+            fetchDepth: 0
+
+          # step 0: clean workspace and validate initial configuration
+          - template: agent/clean.yml
+          - template: ci/initial_config/main.yml
+
+          # step 1: security scans
+          #- template: ci/gitleaks/main.yml
+          #  parameters:
+          #    work_path: ${{ parameters.work_path }}
+          - template: ci/semgrep/main.yml
+          - template: ci/checkmarx/main.yml
+
+          # step 2: tests & code analysis
+          - template: ci/run_tests/main.yml
+            parameters:
+              work_path: ${{ parameters.work_path }}
+              language: ${{ parameters.language }}
+              cs_use_nuget_config: ${{ parameters.cs_use_nuget_config }}
+              sonar_qube_svc: ${{ parameters.sonar_qube_svc }}
+          - template: ci/sonar/main.yml
+            parameters:
+              work_path: ${{ parameters.work_path }}
+              language: ${{ parameters.language }}
+              sonar_qube_svc: ${{ parameters.sonar_qube_svc }}
+
+          # step 3: code analysis
+          - ${{ if eq(parameters.containerized, true) }}:
+            - template: ci/build/docker/main.yml
+              parameters:
+                work_path: ${{ parameters.work_path }}
+
+          #- template: ci/custom_breaker/main.yml

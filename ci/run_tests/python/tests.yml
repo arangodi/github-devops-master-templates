@@ -1,0 +1,35 @@
+parameters:
+  - name: work_path
+    type: string
+
+steps:
+  - task: CmdLine@2
+    displayName: "Python - Install Requirements and Run Tests"
+    inputs:
+      script: |
+        echo "==================================================="
+        echo "Using Python $(pythonVersion)..."
+        python$(pythonVersion) --version
+
+        echo "==================================================="
+        echo "Cleaning previous virtual environment..."
+        rm -rf .venv
+
+        echo "==================================================="
+        echo "Creating fresh virtual environment..."
+        python$(pythonVersion) -m venv .venv
+        source .venv/bin/activate
+
+        echo "==================================================="
+        echo "Upgrading pip..."
+        pip install --upgrade pip
+
+        echo "==================================================="
+        echo "Installing project dependencies..."
+        pip install -r tests/requirements.txt
+        pip install pytest pytest-cov
+
+        echo "==================================================="
+        echo "Running tests with pytest..."
+        pytest --cov=./ --cov-report=xml
+      workingDirectory: ${{ parameters.work_path }}

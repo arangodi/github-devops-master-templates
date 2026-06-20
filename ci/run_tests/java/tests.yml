@@ -1,0 +1,18 @@
+parameters:
+  - name: work_path
+    type: string
+
+steps:
+  - task: CmdLine@2
+    displayName: "Validate Maven Access Token"
+    inputs:
+      script: |
+        echo 'vstsMavenAccessTokenBtgColombia= $(vstsMavenAccessTokenBtgColombia)'
+
+  - task: Gradle@4
+    displayName: "Gradle - Clean and Build Project"
+    inputs:
+      tasks: 'clean build -PvstsMavenAccessTokenBtgColombia=$(vstsMavenAccessTokenBtgColombia)'
+      publishJUnitResults: false
+      javaHomeOption: Path
+      jdkDirectory: '/usr/lib/jvm/java-17-amazon-corretto.x86_64/'

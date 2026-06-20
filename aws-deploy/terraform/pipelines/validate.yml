@@ -1,0 +1,113 @@
+# ══════════════════════════════════════════════════════════════
+# TEMPLATE: Terraform Config Validation
+# ══════════════════════════════════════════════════════════════
+# Este template valida archivos de configuración de Terraform y tags
+# usando validators Python personalizados
+# ══════════════════════════════════════════════════════════════
+
+parameters: []
+
+stages:
+  - stage: Validate
+    displayName: "✅ Validar config + tags"
+
+    variables:
+      - name: versionValidate
+        value: '3.12'
+
+    jobs:
+      - job: ValidateConfig
+        displayName: "validators/main.py + tag validator"
+
+        steps:
+          # ==========================================
+          # CHECKOUTS
+          # ==========================================
+          - checkout: self
+            path: $(Build.BuildId)/infra
+            fetchDepth: 0
+            displayName: "Checkout infra"
+            persistCredentials: true
+
+          - checkout: devops-master-templates
+            path: $(Build.BuildId)/iac
+            fetchDepth: 1
+            displayName: "Checkout devops-master-templates"
+            persistCredentials: true
+
+          # ==========================================
+          # VERIFICAR VERSIÓN DE PYTHON
+          # ==========================================
+          - bash: |
+              set -e
+              echo "===================================="
+              echo " VERIFICANDO PYTHON $(versionValidate)"
+              echo "===================================="
+
+              if command -v python$(versionValidate) &> /dev/null; then
+                echo "✅ python$(versionValidate) encontrado"
+                python$(versionValidate) --version
+              else
+                echo "❌ ERROR: python$(versionValidate) no está disponible en el agente"
+                echo "Versiones de Python disponibles:"
+                ls -la /usr/bin/python* 2>/dev/null || true
+                exit 1
+              fi
+
+            displayName: "Validar Version de Python $(versionValidate)"
+
+          # ==========================================
+          # STEP 1 - VALIDAR CONFIGS
+          # ==========================================
+          #- bash: |
+          #    set -e
+
+          #    INFRA_ROOT="$(Pipeline.Workspace)/$(Build.BuildId)/infra"
+          #    IAC_ROOT="$(Pipeline.Workspace)/$(Build.BuildId)/iac"
+          #    cd "$INFRA_ROOT"
+
+          #    echo "===================================="
+          #    echo " VALIDANDO CONFIGFILE"
+          #    echo "===================================="
+
+          #    CONFIG_FILE="configFile"
+
+          #   if [ ! -f "$CONFIG_FILE" ]; then
+          #      echo "❌ No se encontró el archivo '$CONFIG_FILE' en la raíz del proyecto"
+          #      exit 1
+          #    fi
+
+          #    echo "Archivo detectado: $CONFIG_FILE"
+          #    echo ""
+
+          #    PYTHON_CMD="python$(versionValidate)"
+
+          #    echo "Instalando dependencias con $PYTHON_CMD..."
+          #    $PYTHON_CMD -m pip install pydantic pyyaml --quiet
+
+          #    echo "────────────────────────────────────"
+          #    echo "Validando config: $CONFIG_FILE"
+
+          #    CONFIG_PATH="$INFRA_ROOT/$CONFIG_FILE"
+
+          #    if PYTHONPATH="$IAC_ROOT/aws-deploy/terraform/pipelines" $PYTHON_CMD -m validators.main "$CONFIG_PATH"; then
+          #      echo "✅ Config OK"
+          #    else
+          #      echo "❌ Config FALLÓ"
+          #      exit 1
+          #    fi
+
+          #    echo ""
+          #    echo "===================================="
+          #    echo "✅ ConfigFile validado correctamente"
+
+          #  displayName: "Validar configFile"
+
+          
+
+          # ==========================================
+          # STEP 2 - TAG VALIDATOR (OPCIONAL)
+          # ==========================================
+          # Si existe un tag validator en devops-templates, descomentarlo
+          - template: ../../../ci/tag_validator/main.yml
+          

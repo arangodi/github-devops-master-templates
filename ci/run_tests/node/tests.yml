@@ -1,0 +1,22 @@
+parameters:
+  - name: work_path
+    type: string
+
+steps:
+  - task: CmdLine@2
+    displayName: "Node.js - Install Dependencies and Run Tests"
+    inputs:
+      script: |
+        source ~/.bash_profile
+        nvm use $(nodeVersion)
+        echo "==================================================="
+        rm -rf node_modules package-lock.json
+        npm cache clean --force
+        npm cache verify
+        npm update
+        echo "Installing package"
+        npm install --force
+        echo "==================================================="
+        echo "Running tests"
+        npm run test:coverage
+      workingDirectory: ${{ parameters.work_path }}

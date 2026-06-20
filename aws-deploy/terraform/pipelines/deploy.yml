@@ -1,0 +1,327 @@
+# ══════════════════════════════════════════════════════════════
+# TEMPLATE: Terraform Deploy
+# ══════════════════════════════════════════════════════════════
+# Este template implementa el flujo completo de despliegue de infraestructura
+# con Terraform usando variables globales del pipeline padre
+# ══════════════════════════════════════════════════════════════
+# Variables esperadas del pipeline padre:
+#   - stage: ambiente (dev, qc, uat, pdn)
+#   - region: región AWS (us-east-1)
+#   - awsCredentials: service connection de AWS
+#   - configFilePath: path al archivo de configuración
+# Parámetros:
+#   - action: acción (deploy, destroy)
+# ══════════════════════════════════════════════════════════════
+
+parameters:
+  - name: action
+    type: string
+    default: deploy
+    displayName: "Acción a ejecutar"
+
+stages:
+  # ══════════════════════════════════════════════════════════════
+  # STAGE 1 — Leer config y validar consistencia
+  # ══════════════════════════════════════════════════════════════
+  - stage: Detect
+    displayName: "Leer config y validar consistencia"
+    jobs:
+      - job: ValidateConfig
+        displayName: "Validar configuración antes de deploy"
+        steps:
+          - checkout: self
+            path: $(Build.BuildId)/infra
+            fetchDepth: 0
+            displayName: "Checkout Infra-ConfigFile"
+
+          - checkout: devops-master-templates
+            path: $(Build.BuildId)/iac
+            fetchDepth: 1
+            displayName: "Checkout devops-master-templates"
+
+          # ==========================================
+          # VALIDAR ARCHIVOS OBLIGATORIOS
+          # ==========================================
+          - bash: |
+              set -e
+
+              INFRA_ROOT="$(Pipeline.Workspace)/$(Build.BuildId)/infra"
+
+              CI_PIPELINE="$INFRA_ROOT/ci-azure-pipeline.yml"
+              TAG_FILE="$INFRA_ROOT/tags.yml"
+
+              echo "===================================="
+              echo " VALIDANDO ARCHIVOS OBLIGATORIOS"
+              echo "===================================="
+              echo "Infra Root: $INFRA_ROOT"
+              echo ""
+
+              # ==============================
+              # Validar CI Pipeline
+              # ==============================
+              if [ ! -f "$CI_PIPELINE" ]; then
+                echo "❌ No se encontró el archivo 'ci-azure-pipeline.yml'"
+                echo ""
+                echo "Este archivo es obligatorio para cualquier repositorio desplegable."
+                echo "Recuerde crear y ejecutar primero el pipeline de CI antes de ejecutar el CD."
+                echo ""
+                echo "Archivos mínimos requeridos:"
+                echo " - ci-azure-pipeline.yml"
+                echo " - cd-azure-pipeline.yml"
+                exit 1
+              fi
+
+              echo "✅ ci-azure-pipeline.yml encontrado"
+
+              # ==============================
+              # Validar tags.yml
+              # ==============================
+              if [ ! -f "$TAG_FILE" ]; then
+                echo "❌ No se encontró el archivo 'tags.yml'"
+                echo ""
+                echo "El despliegue fue detenido porque no se encontró el archivo de tags."
+                echo "Antes de ejecutar CD debe:"
+                echo "  1. Crear el archivo tags.yml"
+                echo "  2. Ejecutar exitosamente el pipeline de CI"
+                echo "  3. Ejecutar posteriormente el pipeline de CD"
+                exit 1
+              fi
+
+              echo "✅ tags.yml encontrado"
+
+              echo ""
+              echo "===================================="
+              echo "✅ Validaciones obligatorias OK"
+              echo "===================================="
+
+            displayName: "Validar archivos obligatorios"
+          
+          # ==========================================
+          # OPCIONAL: Inyectar variables al config
+          # ==========================================
+          - task: replacetokens@6
+            displayName: "Inyectar variables al config (opcional)"
+            inputs:
+              sources: "$(Pipeline.Workspace)/$(Build.BuildId)/infra/$(configFilePath)"
+              tokenPattern: azpipelines
+              encoding: utf-8
+              missingVarAction: keep
+
+          - bash: |
+              set -e
+
+              INFRA_ROOT="$(Pipeline.Workspace)/$(Build.BuildId)/infra"
+              CONFIG_FILE="$(configFilePath)"
+              CONFIG_PATH="$INFRA_ROOT/$CONFIG_FILE"
+
+              echo "===================================="
+              echo " VALIDANDO CONFIGURACIÓN"
+              echo "===================================="
+              echo "Config File: $CONFIG_FILE"
+              echo "Full Path:   $CONFIG_PATH"
+              echo "Stage:       $(stage)"
+              echo "Action:      ${{ parameters.action }}"
+              echo "Region:      $(region)"
+              echo ""
+
+              # Validar que el archivo existe
+              if [ ! -f "$CONFIG_PATH" ]; then
+                echo "❌ ERROR: El archivo '$CONFIG_FILE' no existe en la raíz del proyecto"
+                exit 1
+              fi
+
+              echo "✅ Archivo encontrado: $CONFIG_FILE"
+
+              # Validar que yq está disponible (necesario para tf-wrapper)
+              if ! command -v yq &> /dev/null; then
+                echo "❌ ERROR: 'yq' no está instalado en el agente"
+                echo "El tf-wrapper.sh requiere yq para parsear YAML"
+                exit 1
+              fi
+
+              echo "✅ yq disponible: $(yq --version)"
+
+              # Leer valores del YAML
+              cd "$INFRA_ROOT"
+              ACCOUNT=$(yq -r '.account' "$CONFIG_FILE")
+              ENVIRONMENT=$(yq -r '.environment' "$CONFIG_FILE")
+              PROJECT_NAME=$(yq -r '.project_name' "$CONFIG_FILE")
+
+              echo ""
+              echo "📋 Valores en el configFile:"
+              echo "   account:      $ACCOUNT"
+              echo "   environment:  $ENVIRONMENT"
+              echo "   project_name: $PROJECT_NAME"
+
+              # Validar consistencia: environment debe coincidir con stage
+              if [ "$ENVIRONMENT" != "$(stage)" ]; then
+                echo ""
+                echo "❌ ERROR: Inconsistencia detectada"
+                echo "   'environment' en configFile: $ENVIRONMENT"
+                echo "   'stage' del pipeline:        $(stage)"
+                echo ""
+                echo "El environment en el configFile debe coincidir con el stage del pipeline"
+                exit 1
+              fi
+
+              echo ""
+              echo "✅ Validación exitosa - consistencia verificada"
+
+              # Exportar para siguientes stages
+              echo "##vso[task.setvariable variable=CONFIG_FILE;isOutput=true]$CONFIG_FILE"
+              echo "##vso[task.setvariable variable=ACCOUNT;isOutput=true]$ACCOUNT"
+              echo "##vso[task.setvariable variable=ENVIRONMENT;isOutput=true]$ENVIRONMENT"
+              echo "##vso[task.setvariable variable=PROJECT_NAME;isOutput=true]$PROJECT_NAME"
+
+            name: ValidateAndExport
+            displayName: "Validar config y exportar variables"
+
+          
+
+  # ══════════════════════════════════════════════════════════════
+  # STAGE 2 — Terraform Deploy
+  # ══════════════════════════════════════════════════════════════
+  - stage: Deploy
+    displayName: "Desplegar Infraestructura"
+    dependsOn:
+      - Detect
+    variables:
+      CONFIG_FILE: $[ stageDependencies.Detect.ValidateConfig.outputs['ValidateAndExport.CONFIG_FILE'] ]
+      ACCOUNT: $[ stageDependencies.Detect.ValidateConfig.outputs['ValidateAndExport.ACCOUNT'] ]
+      ENVIRONMENT: $[ stageDependencies.Detect.ValidateConfig.outputs['ValidateAndExport.ENVIRONMENT'] ]
+      PROJECT_NAME: $[ stageDependencies.Detect.ValidateConfig.outputs['ValidateAndExport.PROJECT_NAME'] ]
+    jobs:
+      - job: TerraformDeploy
+        displayName: "Ejecutar ${{ parameters.action }}"
+        steps:
+          - checkout: self
+            path: $(Build.BuildId)/infra
+            fetchDepth: 0
+            displayName: "Checkout infra"
+
+          - checkout: devops-master-templates
+            path: $(Build.BuildId)/iac
+            fetchDepth: 1
+            displayName: "Checkout IAC"
+          
+          - task: Bash@3
+            displayName: 'Agregar tags dinámicos a tags.yml'
+            inputs:
+              targetType: 'inline'
+              script: |
+                TAG_FILE="$(Pipeline.Workspace)/$(Build.BuildId)/infra/tags.yml"
+
+                if [ ! -f "$TAG_FILE" ]; then
+                  echo "❌ tags.yml no existe"
+                  exit 1
+                fi
+
+                echo "Agregando tags dinámicos al archivo $TAG_FILE"
+
+                # Asegura salto de línea al final del archivo
+                echo "" >> "$TAG_FILE"
+
+                cat <<EOF >> "$TAG_FILE"
+                  - name: deployby
+                    value: $(Build.RequestedForEmail)
+                  - name: repo_name
+                    value: $(Build.Repository.Name)
+                  - name: branch_name
+                    value: $(Build.SourceBranchName)
+                EOF
+
+                echo "Contenido final del archivo:"
+                cat "$TAG_FILE"
+
+          # ==========================================
+          # OPCIONAL: Inyectar variables al config
+          # ==========================================
+          - task: replacetokens@6
+            displayName: "Inyectar variables al config (opcional)"
+            inputs:
+              sources: "$(Pipeline.Workspace)/$(Build.BuildId)/infra/$(CONFIG_FILE)"
+              tokenPattern: azpipelines
+              encoding: utf-8
+              missingVarAction: keep
+
+          # ==========================================
+          # TERRAFORM DEPLOY/DESTROY
+          # ==========================================
+          - task: AWSShellScript@1
+            displayName: "Terraform ${{ parameters.action }}"
+            inputs:
+              awsCredentials: $(awsCredentials)
+              regionName: $(region)
+              scriptType: inline
+              inlineScript: |
+                set -e
+
+                INFRA_ROOT="$(Pipeline.Workspace)/$(Build.BuildId)/infra"
+                IAC_ROOT="$(Pipeline.Workspace)/$(Build.BuildId)/iac"
+                TF_ROOT="$IAC_ROOT/aws-deploy/terraform"
+                WRAPPER="$TF_ROOT/scripts/tf-wrapper.sh"
+
+                echo "===================================="
+                echo " ACCIÓN: ${{ parameters.action }}"
+                echo "===================================="
+                echo "Config File:   $(CONFIG_FILE)"
+                echo "Account:       $(ACCOUNT)"
+                echo "Environment:   $(ENVIRONMENT)"
+                echo "Project Name:  $(PROJECT_NAME)"
+                echo "Action:        ${{ parameters.action }}"
+                echo "Region:        $(region)"
+                echo "Wrapper:       $WRAPPER"
+                echo "===================================="
+                echo ""
+
+                # Verificar que el wrapper existe
+                if [ ! -f "$WRAPPER" ]; then
+                  echo "❌ ERROR: tf-wrapper.sh no encontrado en $WRAPPER"
+                  exit 1
+                fi
+
+                # Dar permisos de ejecución
+                chmod +x "$WRAPPER"
+
+                # Verificar terraform
+                if ! command -v terraform &> /dev/null; then
+                  echo "❌ ERROR: terraform no está instalado en el agente"
+                  exit 1
+                fi
+
+                echo "✅ Terraform version: $(terraform version -json | grep -o '"terraform_version":"[^"]*"' | cut -d'"' -f4)"
+                echo ""
+
+                # Mapear acción del pipeline a comando de Terraform
+                PIPELINE_ACTION="${{ parameters.action }}"
+
+                if [ "$PIPELINE_ACTION" = "deploy" ]; then
+                  TF_COMMAND="apply"
+                  ACTION_LABEL="deploy (terraform apply)"
+                elif [ "$PIPELINE_ACTION" = "destroy" ]; then
+                  TF_COMMAND="destroy"
+                  ACTION_LABEL="destroy"
+                else
+                  echo "❌ ERROR: Acción '$PIPELINE_ACTION' no reconocida"
+                  echo "   Valores válidos: deploy, destroy"
+                  exit 1
+                fi
+
+                # Ejecutar wrapper
+                CONFIG_FILE_PATH="$INFRA_ROOT/$(CONFIG_FILE)"
+
+                echo "🚀 Ejecutando $ACTION_LABEL..."
+                echo ""
+
+                "$WRAPPER" "$CONFIG_FILE_PATH" "$TF_COMMAND" -auto-approve
+
+                EXIT_CODE=$?
+
+                if [ $EXIT_CODE -eq 0 ]; then
+                  echo ""
+                  echo "✅ $ACTION_LABEL completado exitosamente"
+                else
+                  echo ""
+                  echo "❌ $ACTION_LABEL falló con código $EXIT_CODE"
+                  exit $EXIT_CODE
+                fi

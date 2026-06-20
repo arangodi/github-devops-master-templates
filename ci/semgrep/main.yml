@@ -1,0 +1,64 @@
+steps:
+  - task: CmdLine@2
+    displayName: "🚨 Semgrep - Run OWASP + CWE Security Analysis"
+    timeoutInMinutes: 15
+    inputs:
+      workingDirectory: $(System.DefaultWorkingDirectory)
+      script: |
+        echo "==================================================="
+        echo "Usando Python 3.10..."
+        python3.10 --version
+
+        echo "==================================================="
+        echo "Eliminando entorno virtual anterior (si existe)..."
+        rm -rf .venv
+
+        echo "==================================================="
+        echo "Creando nuevo entorno virtual..."
+        python3.10 -m venv .venv
+        source .venv/bin/activate
+
+        echo "==================================================="
+        echo "Actualizando pip e instalando Semgrep..."
+        pip install --upgrade pip
+        pip install semgrep
+
+        echo "==================================================="
+        echo "Ejecutando análisis con Semgrep..."
+        SEMGREP_ARGS=(
+          --config "p/owasp-top-ten"  # 10 riesgos más críticos en apps web según OWASP
+          --config "p/cwe-top-25"     # 25 debilidades de software más peligrosas según CWE
+          --exclude ".venv"
+          --exclude "node_modules"
+          --exclude "vendor"
+          --error
+          --sarif
+          --output semgrep.sarif
+        )
+        semgrep "${SEMGREP_ARGS[@]}"
+
+        echo "==================================================="
+        echo "Desactivando entorno virtual..."
+        deactivate
+        rm -rf .venv
+
+  - task: CmdLine@2
+    displayName: "🚨 Semgrep - Verify SARIF Artifact Exists"
+    condition: succeededOrFailed()
+    inputs:
+      workingDirectory: $(System.DefaultWorkingDirectory)
+      script: |
+        if [ -f "$(System.DefaultWorkingDirectory)/semgrep.sarif" ]; then
+          echo "✅ Archivo semgrep.sarif encontrado."
+          echo "##vso[task.setvariable variable=ArtifactExists]true"
+        else
+          echo "⚠️ Archivo semgrep.sarif no encontrado."
+          echo "##vso[task.setvariable variable=ArtifactExists]false"
+        fi
+
+  - task: PublishBuildArtifacts@1
+    displayName: "🚨 Semgrep - Publish SARIF Results as Build Artifact"
+    condition: and(succeededOrFailed(), eq(variables['ArtifactExists'], 'true'))
+    inputs:
+      pathToPublish: $(System.DefaultWorkingDirectory)/semgrep.sarif
+      artifactName: CodeAnalysisLogs

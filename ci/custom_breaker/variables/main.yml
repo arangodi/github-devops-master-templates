@@ -1,0 +1,25 @@
+variables:
+  - name: gitleaks_enabled
+    value: true
+  - name: gitleaks_breaker
+    value: true
+  - name: checkmarx_enabled
+    value: true
+  - name: checkmarx_breaker
+    value: true
+  - name: semgrep_enabled
+    value: true
+  - name: semgrep_breaker
+    value: true
+  - name: sonar_enabled
+    value: true
+  - name: sonar_breaker
+    value: true
+  - name: customBreaker_enabled
+    value: true
+  - name: customBreaker_text
+    value: 'mensaje personalizado para el breaker'
+  - name: pool
+    value: "BTG Colombia - Azure DevOps"
+  - name: template_branch
+    value: master

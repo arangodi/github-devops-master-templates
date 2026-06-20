@@ -1,0 +1,13 @@
+parameters:
+  - name: work_path
+    type: string
+
+steps:
+  - task: Gitleaks@3
+    displayName: "🔏 Detect Secrets - Gitleaks"
+    inputs:
+      scanlocation: ${{ parameters.work_path }}
+      scanmode: directory # prevalidation (escanea los commits del PR) | directory (escanea todo el código, sin importar el historial)
+      reportformat: "sarif"
+      uploadresults: true
+      reportartifactname: "CodeAnalysisLogs"

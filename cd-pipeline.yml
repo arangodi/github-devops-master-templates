@@ -1,0 +1,376 @@
+# Template CD genérico para microservicios backend
+# Parámetros:
+#   - serviceName: nombre del microservicio
+
+parameters:
+  - name: serviceName
+    type: string
+    displayName: 'Nombre del servicio'
+  
+  - name: region
+    type: string
+    default: 'us-east-1'
+  
+  - name: checkImageExists
+    type: boolean
+    default: true
+  
+  - name: waitForStable
+    type: boolean
+    default: true
+  
+  - name: infraConfigsRepo
+    type: string
+    default: 'infra-master'
+  
+  - name: infraConfigsBranch
+    type: string
+    default: 'main'
+
+stages:
+  # ══════════════════════════════════════════════════════════
+  # STAGE 1: Info
+  # ══════════════════════════════════════════════════════════
+  - stage: Info
+    displayName: "Información"
+    jobs:
+      - job: ShowInfo
+        displayName: "Configuración del deployment"
+        steps:
+          - checkout: none
+          
+          - task: Bash@3
+            displayName: "Construir nombres dinámicos"
+            inputs:
+              targetType: 'inline'
+              script: |
+                SERVICE_NAME="${{ parameters.serviceName }}"
+                AWS_REGION="${{ parameters.region }}"
+                ECR_REPO_NAME="ecr-$(PROJECT_NAME)-${SERVICE_NAME}"
+                SSM_PARAMETER_NAME="$(PROJECT_NAME)-${SERVICE_NAME}-image-version"
+                ECS_SERVICE_NAME="ecs-$(PROJECT_NAME)-${SERVICE_NAME}-service"
+                
+                echo "================================================"
+                echo "📋 Deployment Configuration"
+                echo "================================================"
+                echo "Service:          ${SERVICE_NAME}"
+                echo "Project:          $(PROJECT_NAME)"
+                echo "Environment:      $(stage)"
+                echo "Account:          $(ACCOUNT)"
+                echo "Region:           ${AWS_REGION}"
+                echo ""
+                echo "Config Path:      $(CONFIG_PATH)"
+                echo "ECR Repo:         ${ECR_REPO_NAME}"
+                echo "SSM Parameter:    ${SSM_PARAMETER_NAME}"
+                echo "ECS Service:      ${ECS_SERVICE_NAME}"
+                echo "ECS Cluster:      $(ECS_CLUSTER_NAME)"
+                echo "AWS Credentials:  $(awsCredentials)"
+                echo "================================================"
+                
+                # Exportar
+                echo "##vso[task.setvariable variable=SERVICE_NAME;isOutput=true]${SERVICE_NAME}"
+                echo "##vso[task.setvariable variable=ECR_REPO_NAME;isOutput=true]${ECR_REPO_NAME}"
+                echo "##vso[task.setvariable variable=SSM_PARAMETER_NAME;isOutput=true]${SSM_PARAMETER_NAME}"
+                echo "##vso[task.setvariable variable=ECS_SERVICE_NAME;isOutput=true]${ECS_SERVICE_NAME}"
+                echo "##vso[task.setvariable variable=AWS_REGION;isOutput=true]${AWS_REGION}"
+            name: setVars
+
+  # ══════════════════════════════════════════════════════════
+  # STAGE 2: Validar Config
+  # ══════════════════════════════════════════════════════════
+  - stage: ValidateConfig
+    displayName: "Validar Configuración"
+    dependsOn: Info
+    jobs:
+      - job: ValidateJob
+        displayName: "Validar config.yml"
+        steps:
+          # ✅ CHECKOUT con path
+          - checkout: ${{ parameters.infraConfigsRepo }}
+            path: infra
+          
+          - task: Bash@3
+            displayName: "Validar config.yml existe"
+            inputs:
+              targetType: 'inline'
+              script: |
+                # ✅ Usar ruta completa
+                INFRA_ROOT="$(Pipeline.Workspace)/infra"
+                CONFIG_FILE="$INFRA_ROOT/$(CONFIG_PATH)"
+                
+                echo "Buscando config en: $CONFIG_FILE"
+                
+                if [ ! -f "$CONFIG_FILE" ]; then
+                  echo "❌ ERROR: Config no encontrado: $CONFIG_FILE"
+                  exit 1
+                fi
+                
+                echo "✅ Config encontrado"
+                echo ""
+                echo "Contenido:"
+                cat "$CONFIG_FILE"
+
+  # ══════════════════════════════════════════════════════════
+  # STAGE 3: Validar Imagen
+  # ══════════════════════════════════════════════════════════
+  - ${{ if eq(parameters.checkImageExists, true) }}:
+    - stage: ValidateImage
+      displayName: "Validar Imagen"
+      dependsOn:
+        - Info
+        - ValidateConfig
+      variables:
+        SERVICE_NAME:       $[ stageDependencies.Info.ShowInfo.outputs['setVars.SERVICE_NAME'] ]
+        ECR_REPO_NAME:      $[ stageDependencies.Info.ShowInfo.outputs['setVars.ECR_REPO_NAME'] ]
+        SSM_PARAMETER_NAME: $[ stageDependencies.Info.ShowInfo.outputs['setVars.SSM_PARAMETER_NAME'] ]
+        AWS_REGION:         $[ stageDependencies.Info.ShowInfo.outputs['setVars.AWS_REGION'] ]
+      
+      jobs:
+        - job: CheckImage
+          displayName: "Verificar SSM y ECR"
+          steps:
+            - checkout: none
+            
+            - task: AWSShellScript@1
+              displayName: "Verificar SSM y ECR"
+              inputs:
+                awsCredentials: $(awsCredentials)
+                regionName: $(AWS_REGION)
+                scriptType: inline
+                inlineScript: |
+                  set -e
+                  
+                  echo "================================================"
+                  echo "🔍 Validando Imagen Docker"
+                  echo "================================================"
+                  
+                  # Verificar SSM
+                  echo "Leyendo versión desde SSM..."
+                  IMAGE_VERSION=$(aws ssm get-parameter \
+                    --name "$(SSM_PARAMETER_NAME)" \
+                    --region $(AWS_REGION) \
+                    --query 'Parameter.Value' \
+                    --output text 2>/dev/null || echo "not-found")
+                  
+                  if [ "$IMAGE_VERSION" == "not-found" ]; then
+                    echo "❌ ERROR: SSM parameter no encontrado: $(SSM_PARAMETER_NAME)"
+                    exit 1
+                  fi
+                  
+                  echo "✅ Versión en SSM: $IMAGE_VERSION"
+                  echo ""
+                  
+                  # Verificar imagen en ECR
+                  echo "Verificando imagen en ECR..."
+                  IMAGE_EXISTS=$(aws ecr describe-images \
+                    --repository-name "$(ECR_REPO_NAME)" \
+                    --image-ids imageTag="$IMAGE_VERSION" \
+                    --region $(AWS_REGION) \
+                    --query 'imageDetails[0].imageTags' \
+                    --output text 2>/dev/null || echo "not-found")
+                  
+                  if [ "$IMAGE_EXISTS" == "not-found" ]; then
+                    echo "❌ ERROR: Imagen no existe en ECR"
+                    echo "   Repositorio: $(ECR_REPO_NAME)"
+                    echo "   Tag: $IMAGE_VERSION"
+                    exit 1
+                  fi
+                  
+                  echo "✅ Imagen encontrada en ECR"
+                  echo ""
+                  echo "================================================"
+                  echo "✅ Validación exitosa"
+                  echo "   Imagen: $(ECR_REPO_NAME):$IMAGE_VERSION"
+                  echo "================================================"
+
+  # ══════════════════════════════════════════════════════════
+  # STAGE 4: Deploy
+  # ══════════════════════════════════════════════════════════
+  - stage: Deploy
+    displayName: "Deploy"
+    ${{ if eq(parameters.checkImageExists, true) }}:
+      dependsOn:
+        - Info
+        - ValidateImage
+    ${{ else }}:
+      dependsOn:
+        - Info
+        - ValidateConfig
+    
+    variables:
+      ECS_SERVICE_NAME: $[ stageDependencies.Info.ShowInfo.outputs['setVars.ECS_SERVICE_NAME'] ]
+      AWS_REGION:       $[ stageDependencies.Info.ShowInfo.outputs['setVars.AWS_REGION'] ]
+    
+    jobs:
+      - job: TerraformApply
+        displayName: "Terraform Apply"
+        steps:
+          # ✅ CHECKOUT 1: infra-master (configs)
+          - checkout: ${{ parameters.infraConfigsRepo }}
+            path: infra
+            displayName: "Checkout infra (configs)"
+          
+          # ✅ CHECKOUT 2: devops-master-templates (engine/modules/scripts)
+          - checkout: devops-master-templates
+            path: iac
+            displayName: "Checkout IAC (engine/modules/scripts)"
+          
+          - task: AWSShellScript@1
+            displayName: "Terraform Apply"
+            inputs:
+              awsCredentials: $(awsCredentials)
+              regionName: $(AWS_REGION)
+              scriptType: inline
+              inlineScript: |
+                set -e
+                
+                # ✅ Usar el mismo patrón que el pipeline de infra
+                INFRA_ROOT="$(Pipeline.Workspace)/infra"
+                TF_ROOT="$(Pipeline.Workspace)/iac/aws-deploy/terraform"
+                WRAPPER="$TF_ROOT/scripts/tf-wrapper.sh"
+                chmod +x "$WRAPPER"
+                
+                CONFIG_FILE="$INFRA_ROOT/$(CONFIG_PATH)"
+                
+                echo "================================================"
+                echo "🚀 Ejecutando Terraform Apply"
+                echo "================================================"
+                echo "Wrapper:      $WRAPPER"
+                echo "Config file:  $CONFIG_FILE"
+                echo ""
+                
+                # Verificar que el config existe
+                if [ ! -f "$CONFIG_FILE" ]; then
+                  echo "❌ ERROR: Config no encontrado: $CONFIG_FILE"
+                  exit 1
+                fi
+                
+                # Ejecutar terraform apply
+                "$WRAPPER" "$CONFIG_FILE" apply -auto-approve
+                
+                echo ""
+                echo "✅ Terraform apply completado"
+          
+          # ✅ Esperar estabilidad
+          - ${{ if eq(parameters.waitForStable, true) }}:
+            - task: AWSShellScript@1
+              displayName: "Esperar estabilidad del servicio"
+              inputs:
+                awsCredentials: $(awsCredentials)
+                regionName: $(AWS_REGION)
+                scriptType: inline
+                inlineScript: |
+                  set -e
+                  
+                  CLUSTER_NAME="$(ECS_CLUSTER_NAME)"
+                  SERVICE_NAME="$(ECS_SERVICE_NAME)"
+                  
+                  echo "================================================"
+                  echo "⏳ Esperando estabilidad del servicio"
+                  echo "================================================"
+                  echo "Cluster:  $CLUSTER_NAME"
+                  echo "Service:  $SERVICE_NAME"
+                  echo ""
+                  
+                  echo "Esperando..."
+                  aws ecs wait services-stable \
+                    --cluster "$CLUSTER_NAME" \
+                    --services "$SERVICE_NAME" \
+                    --region $(AWS_REGION)
+                  
+                  echo ""
+                  echo "✅ Servicio estable"
+
+  # ══════════════════════════════════════════════════════════
+  # STAGE 5: Verificar
+  # ══════════════════════════════════════════════════════════
+  - stage: Verify
+    displayName: "Verificar"
+    dependsOn:
+      - Info
+      - Deploy
+    variables:
+      SERVICE_NAME:        $[ stageDependencies.Info.ShowInfo.outputs['setVars.SERVICE_NAME'] ]
+      SSM_PARAMETER_NAME:  $[ stageDependencies.Info.ShowInfo.outputs['setVars.SSM_PARAMETER_NAME'] ]
+      ECS_SERVICE_NAME:    $[ stageDependencies.Info.ShowInfo.outputs['setVars.ECS_SERVICE_NAME'] ]
+      AWS_REGION:          $[ stageDependencies.Info.ShowInfo.outputs['setVars.AWS_REGION'] ]
+    
+    jobs:
+      - job: VerifyJob
+        displayName: "Estado del servicio"
+        steps:
+          - checkout: none
+          
+          - task: AWSShellScript@1
+            displayName: "Estado del servicio"
+            inputs:
+              awsCredentials: $(awsCredentials)
+              regionName: $(AWS_REGION)
+              scriptType: inline
+              inlineScript: |
+                set -e
+                
+                CLUSTER_NAME="$(ECS_CLUSTER_NAME)"
+                SERVICE_NAME="$(ECS_SERVICE_NAME)"
+                
+                echo "================================================"
+                echo "📊 Estado del Deployment"
+                echo "================================================"
+                
+                # Obtener estado del servicio
+                SERVICE_INFO=$(aws ecs describe-services \
+                  --cluster "$CLUSTER_NAME" \
+                  --services "$SERVICE_NAME" \
+                  --region $(AWS_REGION) \
+                  --query 'services[0]')
+                
+                RUNNING=$(echo "$SERVICE_INFO" | jq -r '.runningCount')
+                DESIRED=$(echo "$SERVICE_INFO" | jq -r '.desiredCount')
+                PENDING=$(echo "$SERVICE_INFO" | jq -r '.pendingCount')
+                
+                echo "Tareas:"
+                echo "  Running: $RUNNING"
+                echo "  Desired: $DESIRED"
+                echo "  Pending: $PENDING"
+                echo ""
+                
+                # Obtener la task definition actual
+                TASK_DEF=$(echo "$SERVICE_INFO" | jq -r '.taskDefinition')
+                
+                echo "Task Definition: $TASK_DEF"
+                echo ""
+                
+                # Obtener la imagen
+                IMAGE=$(aws ecs describe-task-definition \
+                  --task-definition "$TASK_DEF" \
+                  --region $(AWS_REGION) \
+                  --query 'taskDefinition.containerDefinitions[0].image' \
+                  --output text)
+                
+                echo "Imagen: $IMAGE"
+                echo ""
+                
+                # Mostrar últimos eventos
+                echo "Últimos eventos:"
+                aws ecs describe-services \
+                  --cluster "$CLUSTER_NAME" \
+                  --services "$SERVICE_NAME" \
+                  --region $(AWS_REGION) \
+                  --query 'services[0].events[0:5].[createdAt,message]' \
+                  --output table
+                
+                echo ""
+                echo "================================================"
+                
+                # Verificar que hay tareas corriendo
+                if [ "$RUNNING" -eq 0 ]; then
+                  echo "⚠️  ADVERTENCIA: No hay tareas corriendo"
+                  if [ "$DESIRED" -eq 0 ]; then
+                    echo "   El servicio tiene desired_count = 0"
+                  else
+                    echo "   Revisar logs del servicio para más detalles"
+                  fi
+                else
+                  echo "✅ Deployment completado exitosamente"
+                  echo "   $RUNNING/$DESIRED tareas corriendo"
+                fi

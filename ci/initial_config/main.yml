@@ -1,0 +1,20 @@
+steps:
+  - task: CmdLine@2
+    displayName: "▶️ Validate Initial Config ▶️"
+    inputs:
+      script: |
+        # Obtener projectName de Azure Pipelines o usar nombre del repositorio por defecto
+        PROJECT_NAME=$(projectName)
+        STAGE=$(stage)
+
+        if [ -z "$PROJECT_NAME" ]; then
+          echo "projectName no definido, utilizando nombre del repositorio: $(Build.Repository.Name)"
+          PROJECT_NAME=$(Build.Repository.Name)
+        else
+          echo "projectName = $PROJECT_NAME"
+        fi
+        
+        echo "##vso[task.setvariable variable=projectName]$PROJECT_NAME"
+
+        echo "stage = $STAGE"
+        echo "awsCredentials = $(awsCredentials)"

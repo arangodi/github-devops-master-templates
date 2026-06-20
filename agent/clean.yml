@@ -1,0 +1,11 @@
+steps:
+- task: CmdLine@2
+  displayName: "🧹 Agent Cleanup 🧹"
+  inputs:
+      script: |
+        if [ -f "/home/agent/clean_agent.sh" ]; then
+          echo "🧹 Ejecutando limpieza del agente..."
+          sudo bash /home/agent/clean_agent.sh
+        else
+          echo "⚠️ Archivo clean_agent.sh no encontrado. Omitiendo limpieza."
+        fi

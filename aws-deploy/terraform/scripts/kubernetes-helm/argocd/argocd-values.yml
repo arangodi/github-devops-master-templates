@@ -1,0 +1,63 @@
+global:
+  domain: argocddev.btgpactual.com.co
+  image:
+    repository: quay.io/argoproj/argocd
+    tag: "v3.4.1"
+
+configs:
+  params:
+    server.insecure: true
+
+  cm:
+    timeout.reconciliation: 180s
+    application.instanceLabelKey: "argocd.argoproj.io/instance"
+
+  rbac:
+    policy.default: role:readonly
+    policy.csv: |
+      p, role:org-admin, applications, *, */*, allow
+      p, role:org-admin, repositories, *, *, allow
+      p, role:org-admin, clusters, *, *, allow
+      p, role:org-admin, accounts, *, *, allow
+      p, role:org-admin, logs, *, *, allow
+      p, role:org-admin, projects, *, *, allow
+      g, admin, role:org-admin
+
+  secret:
+    createSecret: true
+
+server:
+  replicas: 3
+
+  service:
+    type: ClusterIP
+
+  ingress:
+    enabled: false   #lo maneja ALB Controller
+
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+controller:
+  replicas: 2
+
+repoServer:
+  replicas: 2
+
+redis-ha:
+  enabled: true
+
+applicationSet:
+  enabled: true
+  replicas: 2
+
+notifications:
+  enabled: false
+
+dex:
+  enabled: false

@@ -1,0 +1,183 @@
+[ 
+    {
+        "ParameterKey": "InstanceName",
+        "ParameterValue": "$(InstanceName)"
+    },
+    {
+        "ParameterKey": "EC2Type",
+        "ParameterValue": "$(EC2Type)"
+    },
+    {
+        "ParameterKey": "Image",
+        "ParameterValue": "$(Image)"
+    },
+    {
+        "ParameterKey": "KeySSH",
+        "ParameterValue": "$(KeySSH)"
+    },
+
+    {
+        "ParameterKey": "RootDeviceEbs",
+        "ParameterValue": "$(RootDeviceEbs)"
+    }, 
+    {
+        "ParameterKey": "RootVolumeSize",
+        "ParameterValue": "$(RootVolumeSize)"
+    },
+    {
+        "ParameterKey": "RootVolumeType",
+        "ParameterValue": "$(RootVolumeType)"
+    },
+
+    {
+        "ParameterKey": "AdditionalDeviceEbs1",
+        "ParameterValue": "$(AdditionalDeviceEbs1)"
+    },
+    {
+        "ParameterKey": "AdditionalVolumeSize1",
+        "ParameterValue": "$(AdditionalVolumeSize1)"
+    },
+    {
+        "ParameterKey": "AdditionalVolumeType1",
+        "ParameterValue": "$(AdditionalVolumeType1)"
+    },
+
+    {
+        "ParameterKey": "AdditionalDeviceEbs2",
+        "ParameterValue": "$(AdditionalDeviceEbs2)"
+    },
+    {
+        "ParameterKey": "AdditionalVolumeSize2",
+        "ParameterValue": "$(AdditionalVolumeSize2)"
+    },
+    {
+        "ParameterKey": "AdditionalVolumeType2",
+        "ParameterValue": "$(AdditionalVolumeType2)"
+    },
+
+    {
+        "ParameterKey": "AdditionalDeviceEbs3",
+        "ParameterValue": "$(AdditionalDeviceEbs3)"
+    },
+    {
+        "ParameterKey": "AdditionalVolumeSize3",
+        "ParameterValue": "$(AdditionalVolumeSize3)"
+    },
+    {
+        "ParameterKey": "AdditionalVolumeType3",
+        "ParameterValue": "$(AdditionalVolumeType3)"
+    },
+
+    {
+        "ParameterKey": "AdditionalDeviceEbs4",
+        "ParameterValue": "$(AdditionalDeviceEbs4)"
+    },
+    {
+        "ParameterKey": "AdditionalVolumeSize4",
+        "ParameterValue": "$(AdditionalVolumeSize4)"
+    },
+    {
+        "ParameterKey": "AdditionalVolumeType4",
+        "ParameterValue": "$(AdditionalVolumeType4)"
+    },
+
+    {
+        "ParameterKey": "AdditionalDeviceEbs5",
+        "ParameterValue": "$(AdditionalDeviceEbs5)"
+    },
+    {
+        "ParameterKey": "AdditionalVolumeSize5",
+        "ParameterValue": "$(AdditionalVolumeSize5)"
+    },
+    {
+        "ParameterKey": "AdditionalVolumeType5",
+        "ParameterValue": "$(AdditionalVolumeType5)"
+    },
+
+    {
+        "ParameterKey": "AdditionalDeviceEbs6",
+        "ParameterValue": "$(AdditionalDeviceEbs6)"
+    },
+    {
+        "ParameterKey": "AdditionalVolumeSize6",
+        "ParameterValue": "$(AdditionalVolumeSize6)"
+    },
+    {
+        "ParameterKey": "AdditionalVolumeType6",
+        "ParameterValue": "$(AdditionalVolumeType6)"
+    },
+
+    {
+        "ParameterKey": "AdditionalDeviceEbs7",
+        "ParameterValue": "$(AdditionalDeviceEbs7)"
+    },
+    {
+        "ParameterKey": "AdditionalVolumeSize7",
+        "ParameterValue": "$(AdditionalVolumeSize7)"
+    },
+    {
+        "ParameterKey": "AdditionalVolumeType7",
+        "ParameterValue": "$(AdditionalVolumeType7)"
+    },
+
+    {
+        "ParameterKey": "AdditionalDeviceEbs8",
+        "ParameterValue": "$(AdditionalDeviceEbs8)"
+    },
+    {
+        "ParameterKey": "AdditionalVolumeSize8",
+        "ParameterValue": "$(AdditionalVolumeSize8)"
+    },
+    {
+        "ParameterKey": "AdditionalVolumeType8",
+        "ParameterValue": "$(AdditionalVolumeType8)"
+    },
+
+    {
+        "ParameterKey": "AdditionalDeviceEbs9",
+        "ParameterValue": "$(AdditionalDeviceEbs9)"
+    },
+    {
+        "ParameterKey": "AdditionalVolumeSize9",
+        "ParameterValue": "$(AdditionalVolumeSize9)"
+    },
+    {
+        "ParameterKey": "AdditionalVolumeType9",
+        "ParameterValue": "$(AdditionalVolumeType9)"
+    },
+
+    {
+        "ParameterKey": "AdditionalDeviceEbs10",
+        "ParameterValue": "$(AdditionalDeviceEbs10)"
+    },
+    {
+        "ParameterKey": "AdditionalVolumeSize10",
+        "ParameterValue": "$(AdditionalVolumeSize10)"
+    },
+    {
+        "ParameterKey": "AdditionalVolumeType10",
+        "ParameterValue": "$(AdditionalVolumeType10)"
+    },
+
+    {
+        "ParameterKey": "DisksNumber",
+        "ParameterValue": "$(DisksNumber)"
+    },
+    {
+        "ParameterKey": "SSMRoleName",
+        "ParameterValue": "$(SSMRoleName)"
+    },
+    {
+        "ParameterKey": "PrivateIp",
+        "ParameterValue": "$(PrivateIp)"
+    },
+     {
+        "ParameterKey": "SecurityGroupId1",
+        "ParameterValue": "$(SecurityGroupId1)"
+    },
+    {
+        "ParameterKey": "SecurityGroupId2",
+        "ParameterValue": "$(securityGroupId2)"
+    }
+    
+]

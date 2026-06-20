@@ -1,0 +1,18 @@
+parameters:
+  - name: work_path
+    type: string
+  - name: sonar_qube_svc
+    type: string
+
+steps:
+  - task: SonarQubePrepare@8
+    displayName: "SonarQube Prepare - Java Analysis"
+    inputs:
+      SonarQube: ${{ parameters.sonar_qube_svc }}
+      scannerMode: 'CLI'
+      configMode: 'manual'
+      cliProjectKey: $(projectName)
+      cliProjectName: $(projectName)
+      extraProperties: |
+        sonar.branch.name=$(Build.SourceBranchName)
+        sonar.java.binaries=.

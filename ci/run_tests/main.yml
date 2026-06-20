@@ -1,0 +1,29 @@
+parameters:
+  - name: language
+    type: string
+    values:
+      - node
+      - python
+      - java
+      - go
+      - cs
+  - name: work_path
+    type: string
+  - name: cs_use_nuget_config
+    type: boolean
+    default: false
+  - name: sonar_qube_svc
+    type: string
+    default: ''
+
+steps:
+  - ${{ if eq(parameters.language, 'cs') }}:
+    - template: cs/tests.yml
+      parameters:
+        work_path: ${{ parameters.work_path }}
+        cs_use_nuget_config: ${{ parameters.cs_use_nuget_config }}
+        sonar_qube_svc: ${{ parameters.sonar_qube_svc }}
+  - ${{ else }}:
+    - template: ${{ parameters.language }}/tests.yml
+      parameters:
+        work_path: ${{ parameters.work_path }}

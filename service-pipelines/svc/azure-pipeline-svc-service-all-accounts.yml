@@ -1,0 +1,49 @@
+trigger: none
+
+parameters:
+- name: environment
+  displayName: Environment
+  type: string
+  values:
+    - dev
+    - qc
+    - uat
+    - pdn
+
+- name: role
+  displayName: Role to deploy
+  type: string
+  values:
+    - svc-database-idp-role
+    - svc-infraestructure-idp-role
+    - svc-security-idp-role
+    - svc-service-idp-role
+    - svc-sre-idp-role
+
+pool: 'BTG Colombia - Azure DevOps'
+
+stages:
+- stage: DeployIAMPolicies
+  displayName: Deploy IAM policies
+  jobs:
+    - ${{ if eq(parameters.environment, 'dev') }}:
+      - template: templates/env-dev.yml
+        parameters:
+          role: ${{ parameters.role }}
+
+    - ${{ if eq(parameters.environment, 'qc') }}:
+      - template: templates/env-qc.yml
+        parameters:
+          role: ${{ parameters.role }}
+
+    - ${{ if eq(parameters.environment, 'uat') }}:
+      - template: templates/env-uat.yml
+        parameters:
+          role: ${{ parameters.role }}
+
+    - ${{ if eq(parameters.environment, 'pdn') }}:
+      - template: templates/env-pdn.yml
+        parameters:
+          role: ${{ parameters.role }}
+
+

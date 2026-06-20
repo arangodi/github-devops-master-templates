@@ -1,0 +1,32 @@
+{
+	"Version": "2012-10-17",
+	"Statement": [
+		{
+			"Sid": "AllowIdentityCheck",
+			"Effect": "Allow",
+			"Action": [
+				"sts:GetCallerIdentity"
+			],
+			"Resource": "*"
+		},
+		{
+			"Sid": "AllowS3ListBuckets",
+			"Effect": "Allow",
+			"Action": "s3:ListAllMyBuckets",
+			"Resource": "*"
+		},
+		{
+			"Sid": "AllowIAMReadOnlyForTesting",
+			"Effect": "Allow",
+			"Action": [
+				"iam:GetUser",
+				"iam:GetRole",
+				"iam:ListRoles",
+				"iam:ListUsers",
+				"iam:GetPolicy",
+				"iam:ListAttachedRolePolicies"
+			],
+			"Resource": "*"
+		}
+	]
+}

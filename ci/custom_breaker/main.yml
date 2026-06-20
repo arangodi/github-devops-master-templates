@@ -1,0 +1,8 @@
+   
+steps:
+- task: CmdLine@2
+  displayName: "‼️ Custom Breaker ‼️"
+  condition: and(succeeded(), eq(variables['customBreaker_enabled'], 'true'))
+  inputs:
+    script: |
+      echo "Mensaje = $(customBreaker_text)"

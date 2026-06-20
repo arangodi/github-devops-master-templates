@@ -1,0 +1,27 @@
+parameters:
+  - name: work_path
+    type: string
+  - name: sonar_tests
+    type: string
+    default: '**/*_test.go'
+  - name: sonar_exclusions
+    type: string
+    default: '**/.git/**,**/vendor/**'
+  - name: sonar_qube_svc
+    type: string
+
+steps:
+  - task: SonarQubePrepare@8
+    displayName: "SonarQube Prepare - Go Analysis"
+    inputs:
+      SonarQube: ${{ parameters.sonar_qube_svc }}
+      scannerMode: 'CLI'
+      configMode: 'manual'
+      cliProjectKey: $(projectName)
+      cliProjectName: $(projectName)
+      cliSources: ${{ parameters.work_path }}
+      extraProperties: |
+        sonar.branch.name=$(Build.SourceBranchName)
+        sonar.test.inclusions=${{ parameters.sonar_tests }}
+        sonar.exclusions=${{ parameters.sonar_exclusions }}
+        sonar.go.coverage.reportPaths=${{ parameters.work_path }}/coverage.out

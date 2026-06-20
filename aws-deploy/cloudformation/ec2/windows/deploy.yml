@@ -1,0 +1,516 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Despliegue de una instancia EC2 con discos configurables
+
+Parameters: 
+  InstanceName:
+    Type: String
+    Description: "Nombre para la instancia (reemplaza '#' por el número si aplica)" 
+
+  EC2Type:
+    Type: String
+    Description: "Tipo de instancia EC2 (ej. t3.micro, t3.medium)"
+
+  SecurityGroupId1:
+    Type: String
+    Description: "ID del Security Group (ej. sg-050b349a956ea5252)"
+    Default: ""
+  
+  SecurityGroupId2:
+    Type: String
+    Description: "ID del Security Group (ej. sg-050b349a956ea5252)"
+    Default: ""
+
+  Image:
+    Type: String
+    Description: "ID de la AMI (ej. ami-0ac4dfaf1c5c0cce9)"
+
+  KeySSH:
+    Type: String
+    Description: "Nombre de la clave SSH para conexión a la instancia"
+  
+  SSMRoleName:
+    Type: String
+    Description: "Rol para SSM"
+
+  DisksNumber:
+    Type: Number
+    Default: 1
+    MinValue: 1
+    MaxValue: 10
+    Description: Número de discos adicionales (1 a 10)
+
+
+  #-----------------Disco de sistema  
+  RootDeviceEbs:
+    Default: "/dev/sda1"
+    Type: String
+    Description: "Nombre del dispositivo del disco raíz "
+
+  RootVolumeSize:
+    Default: 80
+    Type: Number
+    Description: "Tamaño del disco raíz (en GB)"
+
+  RootVolumeType:
+    Default: "gp3"
+    Type: String
+    Description: "Tipo del disco raíz (gp2, gp3, io1, etc.)"
+
+  #-----------------Disco adicional  1
+  AdditionalDeviceEbs1:
+    Default: "/dev/xvdb"
+    Type: String
+    Description: "Nombre del dispositivo del disco adicional "
+
+  AdditionalVolumeSize1:
+    Default: 20
+    Type: Number
+    Description: "Tamaño del disco adicional (en GB)"
+
+  AdditionalVolumeType1:
+    Default: "gp3"
+    Type: String
+    Description: "Tipo del disco adicional (gp2, gp3, io1, etc.)"
+  
+  #-----------------Disco adicional  2
+  AdditionalDeviceEbs2:
+    Default: "/dev/xvdc"
+    Type: String
+    Description: "Nombre del dispositivo del disco adicional "
+
+  AdditionalVolumeSize2:
+    Default: 20
+    Type: Number
+    Description: "Tamaño del disco adicional (en GB)"
+
+  AdditionalVolumeType2:
+    Default: "gp3"
+    Type: String
+    Description: "Tipo del disco adicional (gp2, gp3, io1, etc.)"
+  
+  #-----------------Disco adicional  3
+  AdditionalDeviceEbs3:
+    Default: "/dev/xvdd"
+    Type: String
+    Description: "Nombre del dispositivo del disco adicional "
+
+  AdditionalVolumeSize3:
+    Default: 20
+    Type: Number
+    Description: "Tamaño del disco adicional (en GB)"
+
+  AdditionalVolumeType3:
+    Default: "gp3"
+    Type: String
+    Description: "Tipo del disco adicional (gp2, gp3, io1, etc.)"
+  
+  #-----------------Disco adicional  4
+  AdditionalDeviceEbs4:
+    Default: "/dev/xvde"
+    Type: String
+    Description: "Nombre del dispositivo del disco adicional "
+
+  AdditionalVolumeSize4:
+    Default: 20
+    Type: Number
+    Description: "Tamaño del disco adicional (en GB)"
+
+  AdditionalVolumeType4:
+    Default: "gp3"
+    Type: String
+    Description: "Tipo del disco adicional (gp2, gp3, io1, etc.)"
+
+  #-----------------Disco adicional  5
+  AdditionalDeviceEbs5:
+    Default: "/dev/xvdf"
+    Type: String
+    Description: "Nombre del dispositivo del disco adicional "
+
+  AdditionalVolumeSize5:
+    Default: 20
+    Type: Number
+    Description: "Tamaño del disco adicional (en GB)"
+
+  AdditionalVolumeType5:
+    Default: "gp3"
+    Type: String
+    Description: "Tipo del disco adicional (gp2, gp3, io1, etc.)"
+
+  #-----------------Disco adicional  6
+  AdditionalDeviceEbs6:
+    Default: "/dev/xvdg"
+    Type: String
+    Description: "Nombre del dispositivo del disco adicional "
+
+  AdditionalVolumeSize6:
+    Default: 20
+    Type: Number
+    Description: "Tamaño del disco adicional (en GB)"
+
+  AdditionalVolumeType6:
+    Default: "gp3"
+    Type: String
+    Description: "Tipo del disco adicional (gp2, gp3, io1, etc.)"
+
+  #-----------------Disco adicional  7
+  AdditionalDeviceEbs7:
+    Default: "/dev/xvdh"
+    Type: String
+    Description: "Nombre del dispositivo del disco adicional "
+
+  AdditionalVolumeSize7:
+    Default: 20
+    Type: Number
+    Description: "Tamaño del disco adicional (en GB)"
+
+  AdditionalVolumeType7:
+    Default: "gp3"
+    Type: String
+    Description: "Tipo del disco adicional (gp2, gp3, io1, etc.)"
+
+  #-----------------Disco adicional  8
+  AdditionalDeviceEbs8:
+    default: "/dev/xvdi"
+    Type: String
+    Description: "Nombre del dispositivo del disco adicional "
+
+  AdditionalVolumeSize8:
+    Default: 20
+    Type: Number
+    Description: "Tamaño del disco adicional (en GB)"
+
+  AdditionalVolumeType8:
+    Default: "gp3"
+    Type: String
+    Description: "Tipo del disco adicional (gp2, gp3, io1, etc.)"
+
+  #-----------------Disco adicional  9
+  AdditionalDeviceEbs9:
+    Default: "/dev/xvdj"
+    Type: String
+    Description: "Nombre del dispositivo del disco adicional "
+
+  AdditionalVolumeSize9:
+    Default: 20
+    Type: Number
+    Description: "Tamaño del disco adicional (en GB)"
+
+  AdditionalVolumeType9:
+    Default: "gp3"
+    Type: String
+    Description: "Tipo del disco adicional (gp2, gp3, io1, etc.)"
+
+  #-----------------Disco adicional  10
+  AdditionalDeviceEbs10:
+    Default: "/dev/xvdk"
+    Type: String
+    Description: "Nombre del dispositivo del disco adicional "
+
+  AdditionalVolumeSize10:
+    Default: 20
+    Type: Number
+    Description: "Tamaño del disco adicional (en GB)"
+
+  AdditionalVolumeType10:
+    Default: "gp3"
+    Type: String
+    Description: "Tipo del disco adicional (gp2, gp3, io1, etc.)"
+
+  PrivateIp:
+    Type: String
+    Description: IP privada opcional
+    Default: ""         # <-- Si se deja vacío, se omite
+    NoEcho: true
+  
+
+Conditions:
+  Disk1: !Equals [ !Ref DisksNumber, 1 ]
+
+  Disk2: !or 
+    - !Equals [ !Ref DisksNumber, 1 ]
+    - !Equals [ !Ref DisksNumber, 2 ]
+
+  Disk3: !or
+    - !Equals [ !Ref DisksNumber, 1 ]
+    - !Equals [ !Ref DisksNumber, 2 ]
+    - !Equals [ !Ref DisksNumber, 3 ]
+
+  Disk4: !or
+    - !Equals [ !Ref DisksNumber, 1 ]
+    - !Equals [ !Ref DisksNumber, 2 ]
+    - !Equals [ !Ref DisksNumber, 3 ]
+    - !Equals [ !Ref DisksNumber, 4 ]
+
+  Disk5: !or
+    - !Equals [ !Ref DisksNumber, 1 ]
+    - !Equals [ !Ref DisksNumber, 2 ]
+    - !Equals [ !Ref DisksNumber, 3 ]
+    - !Equals [ !Ref DisksNumber, 4 ]
+    - !Equals [ !Ref DisksNumber, 5 ]
+
+  Disk6: !or
+    - !Equals [ !Ref DisksNumber, 1 ]
+    - !Equals [ !Ref DisksNumber, 2 ]
+    - !Equals [ !Ref DisksNumber, 3 ]
+    - !Equals [ !Ref DisksNumber, 4 ]
+    - !Equals [ !Ref DisksNumber, 5 ]
+    - !Equals [ !Ref DisksNumber, 6 ]
+
+  Disk7: !or
+    - !Equals [ !Ref DisksNumber, 1 ]
+    - !Equals [ !Ref DisksNumber, 2 ]
+    - !Equals [ !Ref DisksNumber, 3 ]
+    - !Equals [ !Ref DisksNumber, 4 ]
+    - !Equals [ !Ref DisksNumber, 5 ]
+    - !Equals [ !Ref DisksNumber, 6 ]
+    - !Equals [ !Ref DisksNumber, 7 ]
+
+  Disk8: !or
+    - !Equals [ !Ref DisksNumber, 1 ]
+    - !Equals [ !Ref DisksNumber, 2 ]
+    - !Equals [ !Ref DisksNumber, 3 ]
+    - !Equals [ !Ref DisksNumber, 4 ]
+    - !Equals [ !Ref DisksNumber, 5 ]
+    - !Equals [ !Ref DisksNumber, 6 ]
+    - !Equals [ !Ref DisksNumber, 7 ]
+    - !Equals [ !Ref DisksNumber, 8 ]
+
+  Disk9: !or
+    - !Equals [ !Ref DisksNumber, 1 ]
+    - !Equals [ !Ref DisksNumber, 2 ]
+    - !Equals [ !Ref DisksNumber, 3 ]
+    - !Equals [ !Ref DisksNumber, 4 ]
+    - !Equals [ !Ref DisksNumber, 5 ]
+    - !Equals [ !Ref DisksNumber, 6 ]
+    - !Equals [ !Ref DisksNumber, 7 ]
+    - !Equals [ !Ref DisksNumber, 8 ]
+    - !Equals [ !Ref DisksNumber, 9 ]
+
+  Disk10: !or
+    - !Equals [ !Ref DisksNumber, 1 ]
+    - !Equals [ !Ref DisksNumber, 2 ]
+    - !Equals [ !Ref DisksNumber, 3 ]
+    - !Equals [ !Ref DisksNumber, 4 ]
+    - !Equals [ !Ref DisksNumber, 5 ]
+    - !Equals [ !Ref DisksNumber, 6 ]
+    - !Equals [ !Ref DisksNumber, 7 ]
+    - !Equals [ !Ref DisksNumber, 8 ]
+    - !Equals [ !Ref DisksNumber, 9 ]
+    - !Equals [ !Ref DisksNumber, 10 ]
+
+  HasPrivateIP: !Not [ !Equals [ !Ref PrivateIp, "" ] ]
+  HasSecurityGroupId2: !Not [ !Equals [ !Ref SecurityGroupId2, "" ] ]
+  ShouldCreateInstanceProfileFromRole: !Not [ !Equals [ !Ref SSMRoleName, "" ] ]
+
+Resources:
+  AutoCreatedInstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Condition: ShouldCreateInstanceProfileFromRole
+    Properties:
+      Roles:
+        - !Ref SSMRoleName
+      InstanceProfileName: !Sub "${InstanceName}-profile"
+
+  EC2Instance:
+    Type: "AWS::EC2::Instance"
+    Properties:
+      DisableApiTermination: true
+      IamInstanceProfile: !If 
+        - ShouldCreateInstanceProfileFromRole
+        - !Ref AutoCreatedInstanceProfile
+        - !Ref "AWS::NoValue"
+      UserData:
+        Fn::Base64: !Ref EC2UserData
+      InstanceType: !Ref EC2Type
+      ImageId: !Ref Image
+      KeyName: !Ref KeySSH
+      SecurityGroupIds: 
+        - !Ref SecurityGroupId1
+        - !If [HasSecurityGroupId2, !Ref SecurityGroupId2, !Ref "AWS::NoValue"]
+      Subnets:
+            - !ImportValue PrivateSubnet1EC2
+            - !ImportValue PrivateSubnet2EC2
+
+      PrivateIpAddress: !If [HasPrivateIP, !Ref PrivateIp, !Ref "AWS::NoValue"]
+
+      BlockDeviceMappings:
+        - DeviceName: !Ref RootDeviceEbs
+          Ebs:
+            VolumeSize: !Ref RootVolumeSize
+            VolumeType: !Ref RootVolumeType
+            DeleteOnTermination: true
+            Encrypted: true
+            PropagateTagsToVolumeOnCreation: true
+
+        - DeviceName: !Ref AdditionalDeviceEbs1
+          Condition: Disk1
+          Ebs:
+            VolumeSize: !Ref AdditionalVolumeSize1
+            VolumeType: !Ref AdditionalVolumeType1
+            DeleteOnTermination: true
+            Encrypted: true
+            PropagateTagsToVolumeOnCreation: true
+
+        - DeviceName: !Ref AdditionalDeviceEbs2
+          Condition: Disk2
+          Ebs:
+            VolumeSize: !Ref AdditionalVolumeSize2
+            VolumeType: !Ref AdditionalVolumeType2
+            DeleteOnTermination: true
+            Encrypted: true
+            PropagateTagsToVolumeOnCreation: true
+
+        - DeviceName: !Ref AdditionalDeviceEbs3
+          Condition: Disk3
+          Ebs:
+            VolumeSize: !Ref AdditionalVolumeSize3
+            VolumeType: !Ref AdditionalVolumeType3
+            DeleteOnTermination: true
+            Encrypted: true
+            PropagateTagsToVolumeOnCreation: true
+
+        - DeviceName: !Ref AdditionalDeviceEbs4
+          Condition: Disk4
+          Ebs:
+            VolumeSize: !Ref AdditionalVolumeSize4
+            VolumeType: !Ref AdditionalVolumeType4
+            DeleteOnTermination: true
+            Encrypted: true
+            PropagateTagsToVolumeOnCreation: true
+
+        - DeviceName: !Ref AdditionalDeviceEbs5
+          Condition: Disk5
+          Ebs:
+            VolumeSize: !Ref AdditionalVolumeSize5
+            VolumeType: !Ref AdditionalVolumeType5
+            DeleteOnTermination: true
+            Encrypted: true
+            PropagateTagsToVolumeOnCreation: true
+
+        - DeviceName: !Ref AdditionalDeviceEbs6
+          Condition: Disk6
+          Ebs:
+            VolumeSize: !Ref AdditionalVolumeSize6
+            VolumeType: !Ref AdditionalVolumeType6
+            DeleteOnTermination: true
+            Encrypted: true
+            PropagateTagsToVolumeOnCreation: true
+
+        - DeviceName: !Ref AdditionalDeviceEbs7
+          Condition: Disk7
+          Ebs:
+            VolumeSize: !Ref AdditionalVolumeSize7
+            VolumeType: !Ref AdditionalVolumeType7
+            DeleteOnTermination: true
+            Encrypted: true
+            PropagateTagsToVolumeOnCreation: true
+
+        - DeviceName: !Ref AdditionalDeviceEbs8
+          Condition: Disk8
+          Ebs:
+            VolumeSize: !Ref AdditionalVolumeSize8
+            VolumeType: !Ref AdditionalVolumeType8
+            DeleteOnTermination: true
+            Encrypted: true
+            PropagateTagsToVolumeOnCreation: true
+
+        - DeviceName: !Ref AdditionalDeviceEbs9
+          Condition: Disk9
+          Ebs:
+            VolumeSize: !Ref AdditionalVolumeSize9
+            VolumeType: !Ref AdditionalVolumeType9
+            DeleteOnTermination: true
+            Encrypted: true
+            PropagateTagsToVolumeOnCreation: true
+
+        - DeviceName: !Ref AdditionalDeviceEbs10
+          Condition: Disk10
+          Ebs:
+            VolumeSize: !Ref AdditionalVolumeSize10
+            VolumeType: !Ref AdditionalVolumeType10
+            DeleteOnTermination: true
+            Encrypted: true
+            PropagateTagsToVolumeOnCreation: true
+
+      UserData:
+        "Fn::Base64": !Sub |
+          <powershell>
+          
+          # Ruta del log de depuracion
+          $logFilePath = "C:\Temp\Proceso_de_despliegue.txt"
+          New-Item -ItemType File -Force -Path $logFilePath | Out-Null
+
+          Function Log-Message($message) {
+          Add-Content -Path $logFilePath -Value "$((Get-Date).ToString()): $message"
+          }
+          Log-Message "Inicio de despliegue en PowerShell."
+
+          # Habilitar Escritorio Remoto sin autenticacion
+          Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -Name "fDenyTSConnections" -Value 0
+          Set-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Terminal Server\TSAppCompat' -Name "fRequireUserAuthentication" -Value 0
+          Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -Name "UserAuthentication" -Value 0
+          Log-Message "Escritorio remoto habilitado."
+          Start-Sleep -Seconds 5
+
+          # Habilitar Firewall para Escritorio Remoto
+          Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
+          Log-Message "Firewall configurado para Escritorio Remoto."
+
+          # Configuracion de la tarjeta de red principal
+          $netAdapter = Get-NetAdapter | Where-Object { $_.Status -eq 'Up' }
+          Rename-NetAdapter -Name $netAdapter.Name -NewName "LAN"
+          Start-Sleep -Seconds 3
+          Log-Message "Tarjeta de red renombrada a 'LAN'."
+
+          # Desactivar IPv6 en el adaptador LAN
+          Disable-NetAdapterBinding -Name "LAN" -ComponentID ms_tcpip6
+          Start-Sleep -Seconds 3
+          Log-Message "IPv6 desactivado en el adaptador LAN."
+
+          # Deshabilitar NetBIOS over TCP/IP y Lmhost lookup
+          Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\NetBT\Parameters\Interfaces\$($netAdapter.InterfaceGuid)" -Name "NetbiosOptions" -Value 2
+          Set-DnsClient -InterfaceAlias "LAN" -LmHostsEnabled $false
+          Log-Message "NetBIOS y Lmhost lookup desactivados."
+
+          # Configuracion de zona horaria a Bogota
+          tzutil /s "SA Pacific Standard Time"
+          Log-Message "Zona horaria configurada a Bogota."
+
+          # Obtener todos los discos sin inicializar
+          $disks = Get-Disk | Where-Object PartitionStyle -Eq 'RAW'
+          foreach ($disk in $disks) {
+          # Inicializar el disco en estilo GPT
+          Initialize-Disk -Number $disk.Number -PartitionStyle GPT
+            
+          # Crear una nueva particion en el disco y asignar una letra de unidad
+          $partition = New-Partition -DiskNumber $disk.Number -UseMaximumSize -AssignDriveLetter
+            
+          # Formatear la particion en NTFS y asignar una etiqueta
+          Format-Volume -FileSystem NTFS -DriveLetter $partition.DriveLetter -NewFileSystemLabel "DataDisk" -Confirm:$false
+          }
+          Log-Message "Discos inicializados"
+
+          # Activar la caracteristica de .NET Framework 3.5
+          Install-WindowsFeature -Name NET-Framework-Core -Source "X:\sources\sxs" -IncludeManagementTools -Confirm:$false
+          Log-Message ".NET Framework 3.5 instalado."
+
+      Tags:
+        - Key: Name
+          Value: !Ref InstanceName
+        - Key: ami_backlog
+          Value: true
+
+Outputs:
+  InstanceId:
+    Description: "ID de la instancia EC2 creada"
+    Value: !Ref EC2Instance
+    Export:
+      Name: !Sub "${InstanceName}-instanceId"
+
+  PrivateIP:
+    Description: "Dirección IP privada de la instancia"
+    Value: !GetAtt EC2Instance.PrivateIp
+    Export:
+      Name: !Sub "${InstanceName}-instancePrivateIP"
+  
+

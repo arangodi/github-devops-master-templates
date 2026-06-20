@@ -1,0 +1,24 @@
+trigger: none
+
+pr:
+  branches:
+    include:
+      - master
+      - qc
+      - development
+      - release
+
+pool:
+  name: "BTG Colombia - Azure DevOps"
+
+
+resources:
+  repositories:
+    - repository: devops-master-templates
+      type: git
+      name: devops-master-templates
+      ref: master
+      
+stages:
+  - template: aws-deploy/terraform/pipelines/validate.yml@devops-master-templates
+    

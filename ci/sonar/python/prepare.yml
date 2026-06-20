@@ -1,0 +1,26 @@
+parameters:
+  - name: work_path
+    type: string
+  - name: sonar_tests
+    type: string
+    default: '**/*test*.py'
+  - name: sonar_exclusions
+    type: string
+    default: '**/__pycache__/**,**/venv/**,**/tests/**'
+  - name: sonar_qube_svc
+    type: string
+
+steps:
+  - task: SonarQubePrepare@8
+    displayName: "SonarQube Prepare - Python Analysis"
+    inputs:
+      SonarQube: ${{ parameters.sonar_qube_svc }}
+      scannerMode: 'CLI'
+      configMode: 'manual'
+      cliProjectKey: $(projectName)
+      cliProjectName: $(projectName)
+      cliSources: ${{ parameters.work_path }}
+      extraProperties: |
+        sonar.test.inclusions=${{ parameters.sonar_tests }}
+        sonar.exclusions=${{ parameters.sonar_exclusions }}
+        sonar.python.coverage.reportPaths=${{ parameters.work_path }}/coverage.xml

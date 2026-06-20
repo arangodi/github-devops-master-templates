@@ -1,0 +1,10 @@
+parameters:
+  - name: work_path
+    type: string
+
+steps:
+  - task: CmdLine@2
+    displayName: "Build Docker image (validate Dockerfile)"
+    inputs:
+      script: docker build -t $(serviceName):$(imageVersion) -t $(serviceName):latest .
+      workingDirectory: "${{ parameters.work_path }}"

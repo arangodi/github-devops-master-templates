@@ -1,0 +1,624 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+
+    {
+      "Sid": "CloudFront",
+      "Effect": "Allow",
+      "Action": [
+        "cloudfront:Get*",
+        "cloudfront:List*",
+        "cloudfront:Describe*",
+        "cloudfront:CreateDistribution",
+        "cloudfront:UpdateDistribution",
+        "cloudfront:DeleteDistribution",
+        "cloudfront:CreateInvalidation",
+        "cloudfront:CreateFunction",
+        "cloudfront:UpdateFunction",
+        "cloudfront:DeleteFunction",
+        "cloudfront:PublishFunction",
+        "cloudfront:TestFunction",
+        "cloudfront:CreateCachePolicy",
+        "cloudfront:UpdateCachePolicy",
+        "cloudfront:CreateOriginAccessControl",
+        "cloudfront:CreateCloudFrontOriginAccessIdentity",
+        "cloudfront:UpdateCloudFrontOriginAccessIdentity",
+        "cloudfront:DeleteCloudFrontOriginAccessIdentity",
+        "cloudfront:CreateKeyGroup",
+        "cloudfront:UpdateKeyGroup",
+        "cloudfront:DeleteKeyGroup",
+        "cloudfront:CreatePublicKey",
+        "cloudfront:UpdatePublicKey",
+        "cloudfront:TagResource",
+        "cloudfront:UntagResource"
+      ],
+      "Resource": "*"
+    },
+
+    {
+      "Sid": "EC2",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:Describe*",
+        "ec2:CreateSecurityGroup",
+        "ec2:DeleteSecurityGroup",
+        "ec2:AuthorizeSecurityGroupIngress",
+        "ec2:AuthorizeSecurityGroupEgress",
+        "ec2:RevokeSecurityGroupIngress",
+        "ec2:RevokeSecurityGroupEgress",
+        "ec2:CreateVpcEndpoint",
+        "ec2:CreateTags",
+        "ec2:Delete*",
+        "ec2:AssignPrivateIpAddresses",
+        "ec2:UnassignPrivateIpAddresses",
+        "ec2:ListImagesInRecycleBin",
+        "ec2:ListSnapshotsInRecycleBin"
+      ],
+      "Resource": "*"
+    },
+
+    {
+      "Sid": "IAM",
+      "Effect": "Allow",
+      "Action": [
+        "iam:Get*",
+        "iam:List*",
+        "iam:GenerateCredentialReport",
+        "iam:GenerateOrganizationsAccessReport",
+        "iam:GenerateServiceLastAccessedDetails",
+        "iam:CreateRole",
+        "iam:DeleteRole",
+        "iam:UpdateRole",
+        "iam:AttachRolePolicy",
+        "iam:DetachRolePolicy",
+        "iam:PutRolePolicy",
+        "iam:DeleteRolePolicy",
+        "iam:CreatePolicy",
+        "iam:DeletePolicy",
+        "iam:CreatePolicyVersion",
+        "iam:DeletePolicyVersion",
+        "iam:TagRole",
+        "iam:UntagRole",
+        "iam:SimulateCustomPolicy",
+        "iam:SimulatePrincipalPolicy",
+        "iam:PassRole",
+        "iam:CreateServiceLinkedRole"
+      ],
+      "Resource": "*"
+    },
+
+    {
+      "Sid": "S3",
+      "Effect": "Allow",
+      "Action": [
+        "s3:Get*",
+        "s3:List*",
+        "s3:Describe*",
+        "s3:CreateBucket",
+        "s3:DeleteBucket",
+        "s3:PutObject",
+        "s3:DeleteObject",
+        "s3:PutBucket*",
+        "s3:PutEncryptionConfiguration",
+        "s3:PutLifecycleConfiguration"
+      ],
+      "Resource": "*"
+    },
+
+    {
+      "Sid": "Lambda",
+      "Effect": "Allow",
+      "Action": [
+        "lambda:Get*",
+        "lambda:List*",
+        "lambda:Create*",
+        "lambda:Update*",
+        "lambda:DeleteFunction",
+        "lambda:DeleteLayerVersion",
+        "lambda:PublishLayerVersion",
+        "lambda:PublishVersion",
+        "lambda:InvokeFunction",
+        "lambda:AddPermission",
+        "lambda:RemovePermission",
+        "lambda:TagResource",
+        "lambda:UntagResource"
+      ],
+      "Resource": "*"
+    },
+
+    {
+      "Sid": "DynamoDB",
+      "Effect": "Allow",
+      "Action": [
+        "dynamodb:Describe*",
+        "dynamodb:List*",
+        "dynamodb:Get*",
+        "dynamodb:Query",
+        "dynamodb:Scan",
+        "dynamodb:PutItem",
+        "dynamodb:UpdateItem",
+        "dynamodb:DeleteItem",
+        "dynamodb:CreateTable",
+        "dynamodb:DeleteTable",
+        "dynamodb:UpdateTable",
+        "dynamodb:TagResource",
+        "dynamodb:UntagResource"
+      ],
+      "Resource": "*"
+    },
+
+    {
+      "Sid": "CloudFormation",
+      "Effect": "Allow",
+      "Action": [
+        "cloudformation:Describe*",
+        "cloudformation:List*",
+        "cloudformation:Create*",
+        "cloudformation:UpdateStack",
+        "cloudformation:DeleteChangeSet",
+        "cloudformation:ExecuteChangeSet",
+        "cloudformation:ValidateTemplate",
+        "cloudformation:ContinueUpdateRollback"
+      ],
+      "Resource": "*"
+    },
+
+    {
+      "Sid": "KMS",
+      "Effect": "Allow",
+      "Action": [
+        "kms:List*",
+        "kms:Describe*",
+        "kms:Encrypt",
+        "kms:Decrypt",
+        "kms:GenerateDataKey",
+        "kms:CreateGrant",
+        "kms:RetireGrant"
+      ],
+      "Resource": "*"
+    },
+
+    {
+      "Sid": "CloudWatch",
+      "Effect": "Allow",
+      "Action": [
+        "cloudwatch:Describe*",
+        "cloudwatch:Get*",
+        "cloudwatch:List*",
+        "cloudwatch:PutMetricData",
+        "cloudwatch:PutMetricAlarm",
+        "cloudwatch:DeleteAlarms",
+        "cloudwatch:SetAlarmState",
+        "cloudwatch:EnableAlarmActions",
+        "cloudwatch:DisableAlarmActions",
+        "cloudwatch:TagResource",
+        "cloudwatch:UntagResource"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "Logs",
+      "Effect": "Allow",
+      "Action": [
+        "logs:DescribeLogGroups",
+        "logs:DescribeLogStreams",
+        "logs:GetLogEvents",
+        "logs:FilterLogEvents",
+        "logs:CreateLogGroup",
+        "logs:DeleteLogGroup",
+        "logs:CreateLogStream",
+        "logs:DeleteLogStream",
+        "logs:PutLogEvents",
+        "logs:PutRetentionPolicy",
+        "logs:DeleteRetentionPolicy",
+        "logs:ListTagsForResource",
+        "logs:TagResource",
+        "logs:UntagResource"
+      ],
+      "Resource": "*"
+    },
+
+    {
+      "Sid": "SecretsManager",
+      "Effect": "Allow",
+      "Action": [
+        "secretsmanager:Describe*",
+        "secretsmanager:ListSecrets",
+        "secretsmanager:ListSecretVersionIds",
+        "secretsmanager:GetSecretValue",
+        "secretsmanager:GetResourcePolicy",
+        "secretsmanager:GetRandomPassword",
+        "secretsmanager:CreateSecret",
+        "secretsmanager:UpdateSecret",
+        "secretsmanager:PutSecretValue",
+        "secretsmanager:RotateSecret",
+        "secretsmanager:CancelRotateSecret",
+        "secretsmanager:RestoreSecret",
+        "secretsmanager:DeleteSecret",
+        "secretsmanager:UpdateSecretVersionStage",
+        "secretsmanager:ReplicateSecretToRegions",
+        "secretsmanager:StopReplicationToReplica",
+        "secretsmanager:TagResource",
+        "secretsmanager:UntagResource"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "SNS",
+      "Effect": "Allow",
+      "Action": [
+        "sns:Get*",
+        "sns:List*",
+        "sns:CreateTopic",
+        "sns:DeleteTopic",
+        "sns:Publish",
+        "sns:Subscribe",
+        "sns:Unsubscribe",
+        "sns:SetTopicAttributes",
+        "sns:TagResource",
+        "sns:UntagResource"
+      ],
+      "Resource": "*"
+    },
+
+    {
+      "Sid": "Scheduler",
+      "Effect": "Allow",
+      "Action": [
+        "scheduler:ListSchedules",
+        "scheduler:GetSchedule",
+        "scheduler:CreateSchedule",
+        "scheduler:UpdateSchedule",
+        "scheduler:DeleteSchedule"
+      ],
+      "Resource": "*"
+    },
+
+    {
+      "Sid": "AutoScaling",
+      "Effect": "Allow",
+      "Action": [
+        "autoscaling:DescribeAutoScalingGroups",
+        "autoscaling:DescribeAutoScalingInstances",
+        "autoscaling:DescribeScalingActivities",
+        "autoscaling:DescribePolicies",
+        "autoscaling:DescribeScheduledActions",
+        "application-autoscaling:DescribeScalableTargets",
+        "application-autoscaling:DescribeScalingPolicies",
+        "application-autoscaling:RegisterScalableTarget",
+        "application-autoscaling:DeregisterScalableTarget",
+        "application-autoscaling:PutScalingPolicy",
+        "application-autoscaling:DeleteScalingPolicy",
+        "application-autoscaling:PutScheduledAction",
+        "application-autoscaling:DeleteScheduledAction"
+      ],
+      "Resource": "*"
+    },
+
+    {
+      "Sid": "ElasticLoadBalancing",
+      "Effect": "Allow",
+      "Action": [
+        "elasticloadbalancing:DescribeLoadBalancers",
+        "elasticloadbalancing:DescribeListeners",
+        "elasticloadbalancing:DescribeRules",
+        "elasticloadbalancing:DescribeTargetGroups",
+        "elasticloadbalancing:DescribeTargetHealth",
+        "elasticloadbalancing:CreateLoadBalancer",
+        "elasticloadbalancing:DeleteLoadBalancer",
+        "elasticloadbalancing:CreateListener",
+        "elasticloadbalancing:DeleteListener",
+        "elasticloadbalancing:CreateRule",
+        "elasticloadbalancing:DeleteRule",
+        "elasticloadbalancing:CreateTargetGroup",
+        "elasticloadbalancing:DeleteTargetGroup",
+        "elasticloadbalancing:RegisterTargets",
+        "elasticloadbalancing:DeregisterTargets",
+        "elasticloadbalancing:ModifyTargetGroup",
+        "elasticloadbalancing:ModifyTargetGroupAttributes",
+        "elasticloadbalancing:SetRulePriorities",
+        "elasticloadbalancing:SetSecurityGroups",
+        "elasticloadbalancing:SetSubnets",
+        "elasticloadbalancing:AddTags",
+        "elasticloadbalancing:RemoveTags"
+      ],
+      "Resource": "*"
+    },
+
+    {
+      "Sid": "ECS",
+      "Effect": "Allow",
+      "Action": [
+        "ecs:DescribeClusters",
+        "ecs:DescribeServices",
+        "ecs:DescribeTasks",
+        "ecs:DescribeTaskDefinition",
+        "ecs:ListClusters",
+        "ecs:ListServices",
+        "ecs:ListTasks",
+        "ecs:RegisterTaskDefinition",
+        "ecs:DeregisterTaskDefinition",
+        "ecs:CreateCluster",
+        "ecs:DeleteCluster",
+        "ecs:CreateService",
+        "ecs:UpdateService",
+        "ecs:DeleteService",
+        "ecs:RunTask",
+        "ecs:StopTask",
+        "ecs:UpdateClusterSettings",
+        "ecs:TagResource",
+        "ecs:UntagResource"
+      ],
+      "Resource": "*"
+    },
+
+    {
+      "Sid": "Route53",
+      "Effect": "Allow",
+      "Action": [
+        "route53:GetHostedZone",
+        "route53:ListHostedZones",
+        "route53:ListHostedZonesByName",
+        "route53:ListResourceRecordSets",
+        "route53:CreateHostedZone",
+        "route53:DeleteHostedZone",
+        "route53:ChangeResourceRecordSets",
+        "route53:GetHealthCheck",
+        "route53:CreateHealthCheck",
+        "route53:UpdateHealthCheck",
+        "route53:DeleteHealthCheck"
+      ],
+      "Resource": "*"
+    },
+
+    {
+      "Sid": "ServiceDiscovery",
+      "Effect": "Allow",
+      "Action": [
+        "servicediscovery:GetNamespace",
+        "servicediscovery:GetService",
+        "servicediscovery:GetInstance",
+        "servicediscovery:GetOperation",
+        "servicediscovery:ListNamespaces",
+        "servicediscovery:ListServices",
+        "servicediscovery:ListInstances",
+        "servicediscovery:CreatePrivateDnsNamespace",
+        "servicediscovery:DeleteNamespace",
+        "servicediscovery:CreateService",
+        "servicediscovery:DeleteService",
+        "servicediscovery:RegisterInstance",
+        "servicediscovery:DeregisterInstance",
+        "servicediscovery:TagResource",
+        "servicediscovery:UntagResource"
+      ],
+      "Resource": "*"
+    },
+
+    {
+      "Sid": "APIGateway",
+      "Effect": "Allow",
+      "Action": [
+        "apigateway:GET",
+        "apigateway:POST",
+        "apigateway:PUT",
+        "apigateway:PATCH",
+        "apigateway:DELETE",
+        "apigateway:UpdateRestApiPolicy",
+        "apigateway:TagResource",
+        "apigateway:UntagResource"
+      ],
+      "Resource": "*"
+    },
+
+    {
+      "Sid": "SQS",
+      "Effect": "Allow",
+      "Action": [
+        "sqs:GetQueueUrl",
+        "sqs:GetQueueAttributes",
+        "sqs:ListQueues",
+        "sqs:CreateQueue",
+        "sqs:DeleteQueue",
+        "sqs:SendMessage",
+        "sqs:ReceiveMessage",
+        "sqs:DeleteMessage",
+        "sqs:ChangeMessageVisibility",
+        "sqs:PurgeQueue",
+        "sqs:SetQueueAttributes",
+        "sqs:TagQueue",
+        "sqs:UntagQueue"
+      ],
+      "Resource": "*"
+    },
+
+    {
+      "Sid": "SQS",
+      "Effect": "Allow",
+      "Action": [
+        "sqs:GetQueueUrl",
+        "sqs:GetQueueAttributes",
+        "sqs:ListQueues",
+        "sqs:CreateQueue",
+        "sqs:DeleteQueue",
+        "sqs:SendMessage",
+        "sqs:ReceiveMessage",
+        "sqs:DeleteMessage",
+        "sqs:ChangeMessageVisibility",
+        "sqs:PurgeQueue",
+        "sqs:SetQueueAttributes",
+        "sqs:TagQueue",
+        "sqs:UntagQueue"
+      ],
+      "Resource": "*"
+    },
+
+    {
+      "Sid": "StepFunctions",
+      "Effect": "Allow",
+      "Action": [
+        "states:ListStateMachines",
+        "states:ListExecutions",
+        "states:DescribeStateMachine",
+        "states:DescribeExecution",
+        "states:GetExecutionHistory",
+        "states:CreateStateMachine",
+        "states:UpdateStateMachine",
+        "states:DeleteStateMachine",
+        "states:StartExecution",
+        "states:StopExecution",
+        "states:TagResource",
+        "states:UntagResource"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "Batch",
+      "Effect": "Allow",
+      "Action": [
+        "batch:DescribeJobQueues",
+        "batch:DescribeJobDefinitions",
+        "batch:DescribeJobs",
+        "batch:ListJobQueues",
+        "batch:ListJobDefinitions",
+        "batch:ListJobs",
+        "batch:CreateComputeEnvironment",
+        "batch:UpdateComputeEnvironment",
+        "batch:DeleteComputeEnvironment",
+        "batch:CreateJobQueue",
+        "batch:UpdateJobQueue",
+        "batch:DeleteJobQueue",
+        "batch:RegisterJobDefinition",
+        "batch:DeregisterJobDefinition",
+        "batch:SubmitJob",
+        "batch:TerminateJob",
+        "batch:TagResource",
+        "batch:UntagResource"
+      ],
+      "Resource": "*"
+    },
+
+    {
+      "Sid": "Glue",
+      "Effect": "Allow",
+      "Action": [
+        "glue:GetDatabase",
+        "glue:GetDatabases",
+        "glue:GetTable",
+        "glue:GetTables",
+        "glue:GetPartition",
+        "glue:GetPartitions",
+        "glue:GetJob",
+        "glue:GetJobs",
+        "glue:ListJobs",
+        "glue:CreateDatabase",
+        "glue:UpdateDatabase",
+        "glue:DeleteDatabase",
+        "glue:CreateTable",
+        "glue:UpdateTable",
+        "glue:DeleteTable",
+        "glue:CreatePartition",
+        "glue:UpdatePartition",
+        "glue:DeletePartition",
+        "glue:BatchCreatePartition",
+        "glue:BatchDeletePartition",
+        "glue:BatchGetPartition",
+        "glue:CreateJob",
+        "glue:UpdateJob",
+        "glue:DeleteJob",
+        "glue:CreateConnection",
+        "glue:UpdateConnection",
+        "glue:DeleteConnection",
+        "glue:CreateUserDefinedFunction",
+        "glue:UpdateUserDefinedFunction",
+        "glue:DeleteUserDefinedFunction",
+        "glue:TagResource",
+        "glue:UntagResource"
+      ],
+      "Resource": "*"
+    },
+
+    {
+      "Sid": "OpenSearch",
+      "Effect": "Allow",
+      "Action": [
+        "es:DescribeDomains",
+        "es:DescribeDomain",
+        "es:ListDomainNames",
+        "es:ListTags",
+        "es:AddTags",
+        "es:RemoveTags",
+        "es:CreateElasticsearchDomain",
+        "es:UpdateElasticsearchDomainConfig",
+        "es:DeleteElasticsearchDomain",
+        "es:ESHttpGet",
+        "es:ESHttpPut",
+        "es:ESHttpPost",
+        "es:ESHttpDelete"
+      ],
+      "Resource": "*"
+    },
+
+    {
+      "Sid": "SSM",
+      "Effect": "Allow",
+      "Action": [
+        "ssm:GetParameter",
+        "ssm:GetParameters",
+        "ssm:GetParametersByPath",
+        "ssm:DescribeParameters",
+        "ssm:PutParameter",
+        "ssm:DeleteParameter",
+        "ssm:AddTagsToResource",
+        "ssm:RemoveTagsFromResource"
+      ],
+      "Resource": "*"
+    },
+
+    {
+      "Sid": "SecurityGroups",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:DescribeSecurityGroups",
+        "ec2:CreateSecurityGroup",
+        "ec2:DeleteSecurityGroup",
+        "ec2:AuthorizeSecurityGroupIngress",
+        "ec2:AuthorizeSecurityGroupEgress",
+        "ec2:RevokeSecurityGroupIngress",
+        "ec2:RevokeSecurityGroupEgress",
+        "ec2:CreateTags",
+        "ec2:DeleteTags"
+      ],
+      "Resource": "*"
+    },
+
+    {
+      "Sid": "Networking",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:DescribeVpcs",
+        "ec2:DescribeSubnets",
+        "ec2:DescribeRouteTables",
+        "ec2:DescribeInternetGateways",
+        "ec2:DescribeNatGateways",
+        "ec2:DescribeVpcEndpoints",
+        "ec2:CreateVpcEndpoint",
+        "ec2:DeleteVpcEndpoints",
+        "ec2:DescribeAvailabilityZones"
+      ],
+      "Resource": "*"
+    },
+
+    {
+      "Sid": "ResourceTagging",
+      "Effect": "Allow",
+      "Action": [
+        "tag:GetResources",
+        "tag:GetTagKeys",
+        "tag:GetTagValues"
+      ],
+      "Resource": "*"
+    }
+
+
+  ]
+}

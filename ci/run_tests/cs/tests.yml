@@ -1,0 +1,60 @@
+parameters:
+  - name: work_path
+    type: string
+  - name: cs_use_nuget_config
+    type: boolean
+    default: false
+  - name: sonar_qube_svc
+    type: string
+
+steps:
+  - task: UseDotNet@2
+    # $(netVersion).x resuelve cualquier parche de la versión major indicada.
+    displayName: Install .NET $(netVersion).x SDK
+    inputs:
+      packageType: sdk
+      version: $(netVersion).x
+
+  - ${{ if parameters.cs_use_nuget_config }}:
+    - task: NuGetAuthenticate@1
+      displayName: Authenticate with Azure Artifacts
+
+  - script: dotnet --info
+    displayName: "Verify .NET SDK Version"
+
+  - task: SonarQubePrepare@8
+    displayName: "SonarQube Prepare - C# Analysis"
+    inputs:
+      SonarQube: ${{ parameters.sonar_qube_svc }}
+      scannerMode: 'dotnet'
+      projectKey: $(projectName)
+      projectName: $(projectName)
+      extraProperties: |
+        sonar.cs.vstest.reportsPaths=$(Agent.TempDirectory)/**/*.trx
+        sonar.cs.opencover.reportsPaths=$(Agent.TempDirectory)/**/coverage.opencover.xml
+        sonar.exclusions=**/Dockerfile,**/Dockerfile.*, **/Program.cs
+
+  - ${{ if parameters.cs_use_nuget_config }}:
+    - script: dotnet restore $(slnFile) --configfile $(nugetFile)
+      displayName: Restore solution
+      workingDirectory: ${{ parameters.work_path }}
+  - ${{ else }}:
+    - script: dotnet restore $(slnFile)
+      displayName: Restore solution
+      workingDirectory: ${{ parameters.work_path }}
+
+  - script: dotnet build $(slnFile) --no-restore --configuration Release
+    displayName: "Build .NET Solution (Release)"
+    workingDirectory: ${{ parameters.work_path }}
+
+  - script: |
+      dotnet test $(slnFile) \
+        --no-build \
+        --configuration Release \
+        --framework net$(netVersion) \
+        --collect:"XPlat Code Coverage" \
+        --results-directory $(Agent.TempDirectory) \
+        --logger "trx" \
+        -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=opencover
+    displayName: Run unit tests and generate coverage
+    workingDirectory: ${{ parameters.work_path }}

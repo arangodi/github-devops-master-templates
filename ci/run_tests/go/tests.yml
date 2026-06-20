@@ -1,0 +1,35 @@
+parameters:
+  - name: work_path
+    type: string
+
+steps:
+  - task: GoTool@0
+    displayName: "Install Go $(goVersion)"
+    inputs:
+      version: $(goVersion)
+
+  - task: CmdLine@2
+    displayName: "Go - Download Modules and Run Tests"
+    inputs:
+      script: |
+        echo "==================================================="
+        echo "Using Go..."
+        go version
+
+        echo "==================================================="
+        echo "Clean cache..."
+        go clean -cache
+
+        echo "==================================================="
+        echo "Installing dependencies..."
+        go mod download
+        go mod tidy
+
+        echo "==================================================="
+        echo "Running tests..."
+        go test -coverprofile=coverage.out ./...
+
+        echo "==================================================="
+
+        echo "Done"
+      workingDirectory: ${{ parameters.work_path }}

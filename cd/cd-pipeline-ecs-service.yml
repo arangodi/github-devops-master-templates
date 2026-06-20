@@ -1,0 +1,192 @@
+parameters:
+  - name: work_path
+    type: string
+  
+stages:
+  # ══════════════════════════════════════════════════════════
+  # STAGE 1: Info
+  # ══════════════════════════════════════════════════════════
+  - stage: Info
+    displayName: "Información"
+    jobs:
+      - job: ShowInfo
+        displayName: "Configuración del deployment"
+        variables:
+        - name: ecrName
+          value: "ecr-$(project)-$(serviceName)"
+        - name: ecsClusterName
+          value: "ecs-$(project)-cluster"
+        - name: ecsServiceName
+          value: "ecs-$(project)-$(serviceName)-service"
+        - name: ssmName
+          value: "$(project)-$(serviceName)-image-version"
+        - name: ecsContainerName
+          value: "$(serviceName)"
+
+        steps:
+          - template: ../ci/build/ecs/main.yml
+            parameters: 
+              work_path: ${{parameters.work_path}}
+          
+          - task: AWSShellScript@1
+            displayName: "Deploy ECS Service"
+            inputs:
+              awsCredentials: $(awsCredentials)
+              regionName: $(region)
+              scriptType: "inline"
+              inlineScript: |
+                #!/bin/bash
+                set -euo pipefail
+
+                # ==================================================
+                # VARIABLES
+                # ==================================================
+
+                REGION="$(region)"
+
+                CLUSTER="$(ecsClusterName)"
+                SERVICE="$(ecsServiceName)"
+                ECR_REPO="$(ecrName)"
+                SSM_PARAM="$(ssmName)"
+                CONTAINER_NAME="$(ecsContainerName)"
+
+                ACCOUNT_ID=$(aws sts get-caller-identity \
+                  --query Account \
+                  --output text)
+
+                # ==================================================
+                # LEER VERSION DESDE SSM
+                # ==================================================
+
+                IMAGE_VERSION=$(aws ssm get-parameter \
+                  --name "$SSM_PARAM" \
+                  --query 'Parameter.Value' \
+                  --output text)
+
+                if [[ -z "$IMAGE_VERSION" ]]; then
+                  echo "❌ No se encontró versión en SSM"
+                  exit 1
+                fi
+
+                if [[ "$IMAGE_VERSION" == "latest" ]]; then
+                  echo "❌ La versión no puede ser latest"
+                  exit 1
+                fi
+
+                IMAGE_URI="${ACCOUNT_ID}.dkr.ecr.${REGION}.amazonaws.com/${ECR_REPO}:${IMAGE_VERSION}"
+
+                echo "📦 Imagen a desplegar:"
+                echo "$IMAGE_URI"
+
+                # ==================================================
+                # VALIDAR IMAGEN EN ECR
+                # ==================================================
+
+                aws ecr describe-images \
+                  --repository-name "$ECR_REPO" \
+                  --image-ids imageTag="$IMAGE_VERSION" \
+                  --region "$REGION" \
+                  > /dev/null
+
+                echo "✅ Imagen validada en ECR"
+
+                # ==================================================
+                # OBTENER TASK DEFINITION ACTUAL
+                # ==================================================
+
+                CURRENT_TASK_DEF=$(aws ecs describe-services \
+                  --cluster "$CLUSTER" \
+                  --services "$SERVICE" \
+                  --query 'services[0].taskDefinition' \
+                  --output text)
+
+                echo "📋 Task definition actual:"
+                echo "$CURRENT_TASK_DEF"
+
+                # ==================================================
+                # DESCARGAR TASK DEFINITION
+                # ==================================================
+
+                aws ecs describe-task-definition \
+                  --task-definition "$CURRENT_TASK_DEF" \
+                  --query 'taskDefinition' \
+                  > task-def.json
+
+                # ==================================================
+                # ACTUALIZAR IMAGEN
+                # ==================================================
+
+                jq \
+                  --arg IMAGE "$IMAGE_URI" \
+                  --arg CONTAINER "$CONTAINER_NAME" \
+                  '
+                  .containerDefinitions |= map(
+                    if .name == $CONTAINER
+                    then .image = $IMAGE
+                    else .
+                    end
+                  )
+                  |
+                  del(
+                    .taskDefinitionArn,
+                    .revision,
+                    .status,
+                    .requiresAttributes,
+                    .compatibilities,
+                    .registeredAt,
+                    .registeredBy
+                  )
+                  ' task-def.json > new-task-def.json
+
+                # ==================================================
+                # REGISTRAR NUEVA TASK DEFINITION
+                # ==================================================
+
+                NEW_TASK_DEF=$(aws ecs register-task-definition \
+                  --cli-input-json file://new-task-def.json \
+                  --query 'taskDefinition.taskDefinitionArn' \
+                  --output text)
+
+                echo "✅ Nueva task definition:"
+                echo "$NEW_TASK_DEF"
+
+                # ==================================================
+                # ACTUALIZAR SERVICE
+                # ==================================================
+
+                aws ecs update-service \
+                  --cluster "$CLUSTER" \
+                  --service "$SERVICE" \
+                  --task-definition "$NEW_TASK_DEF" \
+                  --region "$REGION" \
+                  > /dev/null
+
+                echo "🚀 Esperando estabilidad del servicio (timeout: 10 min)..."
+
+                if timeout 600 aws ecs wait services-stable \
+                  --cluster "$CLUSTER" \
+                  --services "$SERVICE" \
+                  --region "$REGION"; then
+
+                  echo "✅ Servicio estabilizado correctamente"
+
+                else
+
+                  echo "❌ Timeout esperando estabilidad del servicio"
+
+                  echo ""
+                  echo "📋 Últimos eventos del servicio:"
+                  echo ""
+
+                  aws ecs describe-services \
+                    --cluster "$CLUSTER" \
+                    --services "$SERVICE" \
+                    --query 'services[0].events[0:10].[createdAt,message]' \
+                    --output table
+
+                  exit 1
+                fi
+
+                echo "✅ Deployment completado correctamente"
+                echo "✅ Imagen desplegada: $IMAGE_URI"
+                      

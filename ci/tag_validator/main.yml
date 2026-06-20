@@ -1,0 +1,310 @@
+steps:
+
+  # ==================================================
+  # VARIABLES DINÁMICAS DEL PIPELINE
+  # ==================================================
+  - script: |
+      echo "##vso[task.setvariable variable=deploy_by]$(Build.RequestedForEmail)"
+      echo "##vso[task.setvariable variable=repo_name]$(Build.Repository.Name)"
+      echo "##vso[task.setvariable variable=branch_name]$(Build.SourceBranchName)"
+
+      echo "Usuario detectado: $(Build.RequestedForEmail)"
+      echo "Repositorio detectado: $(Build.Repository.Name)"
+      echo "Rama detectada: $(Build.SourceBranchName)"
+    displayName: "Agregar tags dinámicos"
+
+ # ==========================================
+    # STEP 2 - VALIDAR TAGS
+    # ==========================================
+  - bash: |
+        set -e
+
+        INFRA_ROOT="$(Pipeline.Workspace)/$(Build.BuildId)/infra"
+        cd "$INFRA_ROOT"
+
+        echo "===================================="
+        echo " VALIDANDO TAGS"
+        echo "===================================="
+
+        TAG_FILE="tags.yml"
+
+        if [ ! -f "$TAG_FILE" ]; then
+        echo "❌ No se encontró el archivo '$TAG_FILE' en la raíz del proyecto"
+        exit 1
+        fi
+
+        echo "✅ tags.yml encontrado"
+
+        TAG_FILE_PATH="$INFRA_ROOT/$TAG_FILE"
+        PYTHON_CMD="python$(versionValidate)"
+
+        echo "Instalar Pyyaml para cargar tags"
+        python$(versionValidate) -m pip install pyyaml
+        #python$(versionValidate) show pyyaml
+
+        # Validar que el archivo tiene contenido válido
+        if ! $PYTHON_CMD -c "import yaml; yaml.safe_load(open('$TAG_FILE_PATH'))" 2>/dev/null; then
+        echo "❌ El archivo tags.yml no tiene un formato YAML válido"
+        exit 1
+        fi      
+
+        # Validar que tiene la estructura esperada
+        if ! $PYTHON_CMD -c "import yaml; data = yaml.safe_load(open('$TAG_FILE_PATH')); assert 'variables' in data and isinstance(data['variables'], list) and len(data['variables']) > 0" 2>/dev/null; then
+        echo "❌ El archivo tags.yml debe tener una clave 'variables' con al menos un tag"
+        exit 1
+        fi
+
+        echo "##vso[task.setvariable variable=TAG_FILE_PATH]$TAG_FILE_PATH"
+        echo "##vso[task.setvariable variable=TAG_VALUES_PATH]$(Pipeline.Workspace)/$(Build.BuildId)/iac/ci/tag_validator/tag_values.json"
+
+        echo ""
+        echo "TAG_FILE_PATH = $TAG_FILE_PATH"
+        echo "===================================="
+        echo "✅ Tags validados correctamente"
+
+    displayName: "Validar tags.yml"
+
+  # ==================================================
+  # TAG VALIDATOR FINAL
+  # ==================================================
+  - task: PythonScript@0
+    displayName: "Tag Validator vFinal"
+    inputs:
+      scriptSource: inline
+      pythonInterpreter: python3.11
+      script: |
+        import os
+        import sys
+        import json
+
+        # ==================================================
+        # CONFIG GENERAL
+        # ==================================================
+        TAGS_OBLIGATORIOS = [
+            "Aplicativo",
+            "Area",
+            "Compania",
+            "Despliegue",
+            "Producto",
+            "Proyecto",
+            "Llave",
+            "Deploy_by",
+            "Repo_name",
+            "Branch_name"
+        ]
+
+        TAGS_SISTEMA = [
+            "Deploy_by",
+            "Repo_name",
+            "Branch_name"
+        ]
+
+        TAGS_NOMBRE_OFICIAL = [
+            "Aplicativo",
+            "Area",
+            "Compania",
+            "Despliegue",
+            "Producto",
+            "Proyecto",
+            "Llave"
+        ]
+
+        # ==================================================
+        # HELPERS
+        # ==================================================
+        def fail(msg):
+            print(f"\n❌ {msg}")
+            print("##vso[task.complete result=Failed;]DONE")
+            sys.exit(1)
+
+        def ok(msg):
+            print(f"✔ {msg}")
+
+        # ==================================================
+        # LEER tags.yml
+        # ==================================================
+        def leer_tags_yaml(ruta):
+            tags = {}
+
+            try:
+                with open(ruta, "r", encoding="utf-8") as f:
+                    lineas = f.readlines()
+
+                tag_actual = None
+
+                for linea in lineas:
+                    texto = linea.strip()
+
+                    if texto.startswith("- name:"):
+                        nombre_original = texto.replace("- name:", "").strip()
+
+                        if nombre_original not in TAGS_NOMBRE_OFICIAL:
+                            print(f"\n❌ Tag mal escrito o capitalizado: {nombre_original}")
+                            print("Use únicamente:")
+
+                            for x in TAGS_NOMBRE_OFICIAL:
+                                print(f" - {x}")
+
+                            sys.exit(1)
+
+                        tag_actual = nombre_original
+
+                    elif texto.startswith("value:") and tag_actual:
+                        valor = texto.replace("value:", "").strip()
+                        tags[tag_actual] = valor
+                        tag_actual = None
+
+                return tags
+
+            except Exception as e:
+                fail(f"Error leyendo tags.yml: {e}")
+
+        # ==================================================
+        # CARGAR JSON
+        # ==================================================
+        def cargar_catalogo(ruta):
+            try:
+                with open(ruta, "r", encoding="utf-8") as f:
+                    return json.load(f)
+            except Exception as e:
+                fail(f"No fue posible cargar tag_values.json: {e}")
+
+        # ==================================================
+        # RUTAS OBLIGATORIAS
+        # ==================================================
+        tag_file = os.getenv("TAG_FILE_PATH", "").strip()
+        values_file = os.getenv("TAG_VALUES_PATH", "").strip()
+
+        if not tag_file:
+            fail("Falta variable obligatoria TAG_FILE_PATH")
+
+        if not values_file:
+            fail("Falta variable obligatoria TAG_VALUES_PATH")
+
+        print("========================================")
+        print(" TAG VALIDATOR FINAL")
+        print("========================================")
+        print(f"tags.yml      : {tag_file}")
+        print(f"catalogo json : {values_file}")
+        print("========================================\n")
+
+        # ==================================================
+        # EXISTENCIA ARCHIVOS
+        # ==================================================
+        if not os.path.exists(tag_file):
+            fail("No existe archivo tags.yml")
+
+        if not os.path.exists(values_file):
+            fail("No existe catálogo tag_values.json")
+
+        ok("tags.yml encontrado")
+        ok("tag_values.json encontrado")
+
+        # ==================================================
+        # CARGA ARCHIVOS
+        # ==================================================
+        tags_archivo = leer_tags_yaml(tag_file)
+        valores_permitidos = cargar_catalogo(values_file)
+
+        ok("tags.yml leído correctamente")
+        ok("catálogo cargado correctamente")
+
+        # ==================================================
+        # INFO CONTEXTO
+        # ==================================================
+        pipeline_name = os.getenv("BUILD_DEFINITIONNAME", "N/A")
+        repo_name = os.getenv("BUILD_REPOSITORY_NAME", "N/A")
+        branch = os.getenv("BUILD_SOURCEBRANCHNAME", "N/A")
+
+        print("\n========================================")
+        print(f"Pipeline    : {pipeline_name}")
+        print(f"Repositorio : {repo_name}")
+        print(f"Branch      : {branch}")
+        print("========================================\n")
+
+        # ==================================================
+        # VALIDAR TAGS
+        # ==================================================
+        faltantes = []
+        vacios = []
+        presentes = []
+        invalidos = []
+
+        for tag in TAGS_OBLIGATORIOS:
+
+            if tag in TAGS_SISTEMA:
+                valor = os.getenv(tag.upper())
+            else:
+                valor = tags_archivo.get(tag)
+
+            if valor is None:
+                faltantes.append(tag)
+                continue
+
+            if str(valor).strip() == "":
+                vacios.append(tag)
+                continue
+
+            presentes.append((tag, valor))
+
+        # ==================================================
+        # VALIDAR CATÁLOGO JSON
+        # ==================================================
+        for tag, valor in presentes:
+
+            tag_json = tag.lower()
+
+            if tag_json in valores_permitidos:
+
+                permitidos = valores_permitidos[tag_json]
+
+                if permitidos and valor not in permitidos:
+                    invalidos.append((tag, valor, permitidos))
+
+        # ==================================================
+        # VALIDAR VARIABLES SISTEMA
+        # ==================================================
+        deploy_by = os.getenv("DEPLOY_BY")
+        repo_var = os.getenv("REPO_NAME")
+        branch_var = os.getenv("BRANCH_NAME")
+
+        if not deploy_by or "@" not in deploy_by:
+            fail(f"deploy_by inválido: {deploy_by}")
+
+        if not repo_var:
+            fail("repo_name vacío")
+
+        if not branch_var:
+            fail("branch_name vacío")
+
+        # ==================================================
+        # RESULTADOS
+        # ==================================================
+        print("TAGS DETECTADOS:")
+
+        for tag, val in presentes:
+            print(f"  ✔ {tag} = {val}")
+
+        if faltantes:
+            print("\nTAGS FALTANTES:")
+            for x in faltantes:
+                print(f" - {x}")
+
+        if vacios:
+            print("\nTAGS VACÍOS:")
+            for x in vacios:
+                print(f" - {x}")
+
+        if invalidos:
+            print("\nVALORES NO PERMITIDOS:")
+            for tag, valor, permitidos in invalidos:
+                print(f" - {tag} = {valor}")
+                print(f"   Permitidos: {permitidos}")
+
+        # ==================================================
+        # DECISIÓN FINAL
+        # ==================================================
+        if faltantes or vacios or invalidos:
+            fail("VALIDACIÓN FALLIDA")
+
+        print("\n✅ VALIDACIÓN EXITOSA")

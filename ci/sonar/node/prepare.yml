@@ -1,0 +1,27 @@
+parameters:
+  - name: work_path
+    type: string
+  - name: test_inclusions
+    type: string
+    default: '**/tests/**/*.test.*'
+  - name: sonar_qube_svc
+    type: string
+  - name: test_exclusions
+    type: string
+    default: '**/coverage/**, **/node_modules/**, **/__mocks__/**, **/*.config.js, **/tests/**, **/__tests__/**, **/config/**, **/scripts/**'
+
+steps:
+  - task: SonarQubePrepare@8
+    displayName: "SonarQube Prepare - Node.js Analysis"
+    inputs:
+      SonarQube: ${{ parameters.sonar_qube_svc }}
+      scannerMode: 'CLI'
+      configMode: 'manual'
+      cliProjectKey: $(projectName)
+      cliProjectName: $(projectName)
+      cliSources: ${{ parameters.work_path }}
+      extraProperties: |
+        sonar.test.inclusions=${{ parameters.test_inclusions }}
+        sonar.exclusions=${{ parameters.test_exclusions }}
+        sonar.javascript.exclusions=${{ parameters.test_exclusions }}
+        sonar.javascript.lcov.reportPaths=${{ parameters.work_path }}/coverage/lcov.info

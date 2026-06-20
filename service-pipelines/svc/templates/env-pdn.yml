@@ -1,0 +1,38 @@
+parameters:
+- name: role
+  displayName: Role to deploy
+  type: string
+  values:
+    - svc-database-idp-role
+    - svc-infraestructure-idp-role
+    - svc-security-idp-role
+    - svc-service-idp-role
+    - svc-sre-idp-role
+
+- name: accounts
+  type: object
+  default:
+    - name: TRANSVERSALS
+      environment: PDN
+    - name: MULTIPROJECTS
+      environment: PDN
+    - name: INTEGRATION
+      environment: PDN
+    # Excepción: DMZ usa PROD aunque conceptualmente sea PDN
+    - name: DMZ
+      environment: PROD
+    - name: AUTOMATION
+      environment: PDN
+    - name: ANALYTICS
+      environment: PDN
+    # Excepción: DIGITAL usa PROD aunque conceptualmente sea PDN
+    - name: DIGITAL
+      environment: PROD
+
+jobs:
+- ${{ each account in parameters.accounts }}:
+  - template: deploy-iam-policies-job.yml
+    parameters:
+      account: ${{ account.name }}
+      environment: ${{ account.environment }}
+      role: ${{ parameters.role }}

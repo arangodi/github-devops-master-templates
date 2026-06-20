@@ -1,0 +1,62 @@
+# ══════════════════════════════════════════════════════════════
+# Variables Globales para Pipelines de Terraform
+# ══════════════════════════════════════════════════════════════
+# Este archivo centraliza las variables comunes para deploy de IaC
+# Uso:
+#   variables:
+#     - template: aws-deploy/terraform/pipelines/vars.yml@devops-master-templates
+#       parameters:
+#         account: multiprojects  # Nombre de la cuenta AWS
+# ══════════════════════════════════════════════════════════════
+
+parameters:
+  - name: account
+    type: string
+    displayName: "Nombre de la cuenta AWS (multiprojects, digital, etc.)"
+
+variables:
+  # ============================================================
+  # STAGE - Determina el ambiente según la rama
+  # ============================================================
+  - name: stage
+    ${{ if eq(variables['Build.SourceBranchName'], 'development') }}:
+      value: dev
+    ${{ elseif eq(variables['Build.SourceBranchName'], 'qc') }}:
+      value: qc
+    ${{ elseif eq(variables['Build.SourceBranchName'], 'release') }}:
+      value: uat
+    ${{ elseif eq(variables['Build.SourceBranchName'], 'master') }}:
+      value: pdn
+    ${{ else }}:
+      value: dev
+
+  # ============================================================
+  # REGION - Región de AWS
+  # ============================================================
+  - name: region
+    value: us-east-1
+
+  # ============================================================
+  # AWS CREDENTIALS - Service Connection según cuenta + ambiente
+  # Formato: SVC-INFRAESTRUCTURE-IDP-{ACCOUNT}-{STAGE}
+  # Ejemplos:
+  #   - SVC-INFRAESTRUCTURE-IDP-MULTIPROJECTS-DEV
+  #   - SVC-INFRAESTRUCTURE-IDP-DIGITAL-PDN
+  # ============================================================
+  - name: awsCredentials
+    ${{ if eq(variables['Build.SourceBranchName'], 'development') }}:
+      value: SVC-INFRAESTRUCTURE-IDP-${{ upper(parameters.account) }}-DEV
+    ${{ elseif eq(variables['Build.SourceBranchName'], 'qc') }}:
+      value: SVC-INFRAESTRUCTURE-IDP-${{ upper(parameters.account) }}-QC
+    ${{ elseif eq(variables['Build.SourceBranchName'], 'release') }}:
+      value: SVC-INFRAESTRUCTURE-IDP-${{ upper(parameters.account) }}-UAT
+    ${{ elseif eq(variables['Build.SourceBranchName'], 'master') }}:
+      value: SVC-INFRAESTRUCTURE-IDP-${{ upper(parameters.account) }}-PDN
+    ${{ else }}:
+      value: SVC-INFRAESTRUCTURE-IDP-${{ upper(parameters.account) }}-DEV
+  
+  - name: isProduction
+    ${{ if eq(variables['Build.SourceBranchName'], 'master') }}:
+      value: true
+    ${{ else }}:
+      value: false

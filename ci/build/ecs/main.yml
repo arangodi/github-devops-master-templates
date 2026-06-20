@@ -1,0 +1,86 @@
+parameters:
+  - name: work_path
+    type: string
+
+steps:
+  - task: replace-variables-in-file@1
+    displayName: "Substitute Variables in .env File"
+    inputs:
+      filepath: "${{ parameters.work_path }}/.env"
+      endWithNewLine: true
+      verbose: true
+  
+  - task: Bash@3
+    displayName: "Print .env after variable substitution"
+    inputs:
+      targetType: "inline"
+      script: |
+        echo "===================================="
+        echo "CONTENIDO DEL ARCHIVO .env"
+        echo "===================================="
+        cat "${{ parameters.work_path }}/.env"
+
+  - task: AWSShellScript@1
+    displayName: "Authenticate Docker with Amazon ECR and Resolve Account ID"
+    inputs:
+      awsCredentials: $(awsCredentials)
+      regionName: $(region)
+      scriptType: "inline"
+      workingDirectory: "${{ parameters.work_path }}"
+      inlineScript: |
+        account_id=$(aws sts get-caller-identity --output text --query 'Account')
+        echo "Account ID: $account_id"
+        echo "##vso[task.setvariable variable=account_id;]$account_id"
+        imageName=$account_id.dkr.ecr.$(region).amazonaws.com/$(ecrName)
+        echo "Image Name: $imageName"
+        echo "##vso[task.setvariable variable=imageName;]$imageName"
+        aws ecr get-login-password --region $(region) | docker login --username AWS --password-stdin $account_id.dkr.ecr.$(region).amazonaws.com
+
+  - task: AWSShellScript@1
+    displayName: "Build Docker Image"
+    inputs:
+      awsCredentials: $(awsCredentials)
+      regionName: $(region)
+      scriptType: "inline"
+      disableAutoCwd: true
+      workingDirectory: "${{ parameters.work_path }}"
+      inlineScript: |
+        set -e
+
+        echo "🐳 Building Docker image..."
+
+        docker build \
+          -t $(imageName):$(Build.BuildId) \
+          -t $(imageName):latest \
+          .
+
+        echo "✅ Image built:"
+        echo " - $(imageName):$(Build.BuildId)"
+        echo " - $(imageName):latest"
+
+  - task: AWSShellScript@1
+    displayName: "Push Docker Image to ECR"
+    inputs:
+      awsCredentials: $(awsCredentials)
+      regionName: $(region)
+      scriptType: "inline"
+      inlineScript: |
+        set -e
+
+        echo "🚀 Pushing Docker images..."
+
+        docker push $(imageName):$(Build.BuildId)
+        docker push $(imageName):latest
+
+        echo "✅ Images pushed successfully"
+
+  - task: SystemsManagerSetParameter@1
+    displayName: "Update Deployment Version in Systems Manager Parameter Store"
+    inputs:
+      awsCredentials: $(awsCredentials)
+      regionName: $(region)
+      parameterName: "$(ssmName)"
+      parameterType: "String"
+      parameterValue: $(version)
+      overwrite: true
+      createNew: true

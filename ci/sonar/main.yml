@@ -1,0 +1,56 @@
+parameters:
+  - name: language
+    type: string
+    values:
+      - node
+      - python
+      - java
+      - go
+      - cs
+  - name: work_path
+    type: string
+  - name: sonar_qube_svc
+    type: string
+
+steps:
+  # SonarQubePrepare por lenguaje
+  - ${{ if ne(parameters.language, 'cs') }}:
+    - template: ${{ parameters.language }}/prepare.yml
+      parameters:
+        work_path: ${{ parameters.work_path }}
+        sonar_qube_svc: ${{ parameters.sonar_qube_svc }}
+
+  # Pasos comunes de SonarQube (Analyze, Publish, Quality Gate)
+  - task: SonarQubeAnalyze@8
+    displayName: "SonarQube - Run Code Analysis"
+
+  - task: SonarQubePublish@8
+    displayName: "SonarQube - Publish Analysis Results"
+    inputs:
+      pollingTimeoutSec: '300'
+
+  - task: Bash@3
+    displayName: "SonarQube - Evaluate Quality Gate"
+    inputs:
+      targetType: inline
+      script: |
+        echo "Checking SonarQube Quality Gate..."
+
+        echo "Using projectKey: $(projectName)"
+        
+        SONARQUBE_API="https://sonarqube.btgpactual.com.co/api/qualitygates/project_status?projectKey=$(projectName)&pullRequest=$(System.PullRequest.PullRequestId)"
+        echo "SonarQube API: $SONARQUBE_API"
+
+        RESPONSE=$(curl --location $SONARQUBE_API)
+
+        STATUS=$(echo "$RESPONSE" | jq -r '.projectStatus.status')
+        echo "Quality Gate status: $STATUS"
+
+        echo "Análisis disponible en: https://sonarqube.btgpactual.com.co/dashboard?pullRequest=$(System.PullRequest.PullRequestId)&id=$(projectName)"
+
+        if [ "$STATUS" != "OK" ]; then
+          echo "##vso[task.logissue type=error]Quality Gate failed: $STATUS"
+          echo "Condiciones fallidas:"
+          echo "$RESPONSE" | jq -r '.projectStatus.conditions[] | select(.status=="ERROR") | "\(.metricKey): \(.actualValue) < \(.errorThreshold)"'
+          exit 1
+        fi

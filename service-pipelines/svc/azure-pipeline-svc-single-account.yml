@@ -1,0 +1,82 @@
+trigger: none
+
+parameters:
+- name: account
+  displayName: AWS Account
+  type: string
+  values:
+    - ANALYTICS
+    - MULTIPROJECTS
+    - INTEGRATION
+    - DMZ
+    - DIGITAL
+    - AUTOMATION
+    - TRANSVERSALS
+
+- name: environment
+  displayName: Environment
+  type: string
+  values:
+    - DEV
+    - UAT
+    - QC
+    - PDN
+
+- name: role
+  displayName: IAM Role
+  type: string
+  values:
+    - svc-database-idp-role
+    - svc-infraestructure-idp-role
+    - svc-security-idp-role
+    - svc-service-idp-role
+    - svc-sre-idp-role
+
+variables:
+  awsRegion: us-east-1
+
+pool: 'BTG Colombia - Azure DevOps'
+
+stages:
+- stage: DeployIAMPolicy
+  displayName: Deploy IAM policy (single target)
+  jobs:
+  - job: Deploy
+    displayName: Apply policy
+    steps:
+    - checkout: self
+
+    - ${{ if eq(parameters.role, 'svc-database-idp-role') }}:
+      - template: templates/task-deploy-iam-policy.yml
+        parameters:
+          awsCredentials: SVC-SRE-IDP-${{ parameters.account }}-${{ parameters.environment }}
+          roleName: ${{ parameters.role }}
+          policyFile: service-pipelines/svc/policies/svc-database-idp-policy.json
+
+    - ${{ if eq(parameters.role, 'svc-infraestructure-idp-role') }}:
+      - template: templates/task-deploy-iam-policy.yml
+        parameters:
+          awsCredentials: SVC-SRE-IDP-${{ parameters.account }}-${{ parameters.environment }}
+          roleName: ${{ parameters.role }}
+          policyFile: service-pipelines/svc/policies/svc-infraestructure-idp-policy.json
+
+    - ${{ if eq(parameters.role, 'svc-security-idp-role') }}:
+      - template: templates/task-deploy-iam-policy.yml
+        parameters:
+          awsCredentials: SVC-SRE-IDP-${{ parameters.account }}-${{ parameters.environment }}
+          roleName: ${{ parameters.role }}
+          policyFile: service-pipelines/svc/policies/svc-security-idp-policy.json
+
+    - ${{ if eq(parameters.role, 'svc-service-idp-role') }}:
+      - template: templates/task-deploy-iam-policy.yml
+        parameters:
+          awsCredentials: SVC-SRE-IDP-${{ parameters.account }}-${{ parameters.environment }}
+          roleName: ${{ parameters.role }}
+          policyFile: service-pipelines/svc/policies/svc-service-idp-policy.json
+
+    - ${{ if eq(parameters.role, 'svc-sre-idp-role') }}:
+      - template: templates/task-deploy-iam-policy.yml
+        parameters:
+          awsCredentials: SVC-SRE-IDP-${{ parameters.account }}-${{ parameters.environment }}
+          roleName: ${{ parameters.role }}
+          policyFile: service-pipelines/svc/policies/svc-sre-idp-policy.json

@@ -1,0 +1,38 @@
+parameters:
+  - name: work_path
+    type: string
+
+steps:
+  - task: AWSShellScript@1
+    displayName: "Authenticate Docker with Amazon ECR and Resolve Account ID"
+    inputs:
+      awsCredentials: $(awsCredentials)
+      regionName: $(region)
+      scriptType: "inline"
+      inlineScript: |
+        account_id=$(aws sts get-caller-identity --output text --query 'Account')
+        echo "Account ID: $account_id"
+        echo "##vso[task.setvariable variable=account_id;]$account_id"
+        aws ecr get-login-password --region $(region) | docker login --username AWS --password-stdin $account_id.dkr.ecr.$(region).amazonaws.com
+
+  - task: AWSShellScript@1
+    displayName: "Build Docker Image"
+    inputs:
+      awsCredentials: $(awsCredentials)
+      regionName: $(region)
+      scriptType: "inline"
+      inlineScript: |
+        docker build . -t $(ecrUrl)/$(namespace)/$(ecrRepoName):$(tag) -t $(ecrUrl)/$(namespace)/$(ecrRepoName):latest --build-arg ecr=$(ecrUrl) --build-arg var_profile=$(PROFILE)
+        echo "Imagenes Construidas"
+        docker images
+      disableAutoCwd: true
+      workingDirectory: "${{ parameters.work_path }}"
+
+  - task: AWSShellScript@1
+    displayName: "Push Docker Image to ECR"
+    inputs:
+      awsCredentials: $(awsCredentials)
+      regionName: $(region)
+      scriptType: "inline"
+      inlineScript: |
+        docker push $(ecrUrl)/$(namespace)/$(ecrRepoName) --all-tags

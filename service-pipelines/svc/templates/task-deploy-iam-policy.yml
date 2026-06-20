@@ -1,0 +1,72 @@
+parameters:
+  awsCredentials: ''  # Service Connection dinámico
+  roleName: ''
+  policyFile: ''
+
+steps:
+- task: AWSShellScript@1
+  displayName: Get AWS Account identity
+  inputs:
+    awsCredentials: ${{ parameters.awsCredentials }}
+    regionName: us-east-1
+    scriptType: inline
+    inlineScript: |
+      echo "Validating AWS identity (Service Connection: ${{ parameters.awsCredentials }})"
+      aws sts get-caller-identity
+
+- task: AWSShellScript@1
+  displayName: Validate IAM role exists
+  inputs:
+    awsCredentials: ${{ parameters.awsCredentials }}
+    regionName: us-east-1
+    scriptType: inline
+    inlineScript: |
+      echo "Validating role: ${{ parameters.roleName }}"
+      aws iam get-role --role-name ${{ parameters.roleName }}
+
+- task: AWSShellScript@1
+  displayName: Validate policy file exists
+  inputs:
+    awsCredentials: ${{ parameters.awsCredentials }}
+    regionName: us-east-1
+    scriptType: inline
+    workingDirectory: service-pipelines/svc
+    inlineScript: |
+      if [ ! -f "${{ parameters.policyFile }}" ]; then
+        echo "❌ Policy file not found: ${{ parameters.policyFile }}"
+        exit 1
+      fi
+      echo "✅ Policy file found: ${{ parameters.policyFile }}"
+
+- task: AWSShellScript@1
+  displayName: Show policy file content (debug)
+  inputs:
+    awsCredentials: ${{ parameters.awsCredentials }}
+    regionName: us-east-1
+    scriptType: inline
+    workingDirectory: service-pipelines/svc
+    inlineScript: |
+      echo "🔍 Content of policy file ${{ parameters.policyFile }}:"
+      cat ${{ parameters.policyFile }}
+
+- task: AWSShellScript@1
+  displayName: Deploy IAM inline policy
+  inputs:
+    awsCredentials: ${{ parameters.awsCredentials }}
+    regionName: us-east-1
+    scriptType: inline
+    workingDirectory: service-pipelines/svc
+    inlineScript: |
+      POLICY_NAME=${{ parameters.roleName }}-inline-policy
+
+      echo "Applying policy"
+      echo "  Role  : ${{ parameters.roleName }}"
+      echo "  Policy: ${{ parameters.policyFile }}"
+
+      aws iam put-role-policy \
+        --role-name ${{ parameters.roleName }} \
+        --policy-name $POLICY_NAME \
+        --policy-document file://${{ parameters.policyFile }}
+
+      echo "✅ Policy deployed successfully"
+
