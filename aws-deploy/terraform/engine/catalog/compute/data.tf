@@ -49,3 +49,18 @@ data "terraform_remote_state" "storage" {
     efs_security_group_ids = {}
   }
 }
+
+data "aws_secretsmanager_secret" "external" {
+  for_each = toset(flatten([
+    for svc in local.ecs_services : [
+      for secret_name in try(svc.task.secrets, []) :
+      secret_name
+      if try(
+        data.terraform_remote_state.security.outputs.secrets[secret_name].secret_arn,
+        null
+      ) == null
+    ]
+  ]))
+
+  name = each.key
+}

@@ -239,8 +239,9 @@ run_shared() {
     -backend-config="bucket=$STATE_BUCKET" \
     -backend-config="region=$STATE_REGION" \
     -backend-config="key=$STATE_KEY" \
-    -backend-config="use_lockfile=true" \
-    -input=false
+    -input=false \
+    #-backend-config="use_lockfile=true" 
+    
 
   terraform $APPLY_ACTION \
     -var="config_file=$CONFIG_FILE_ABS" \
@@ -288,8 +289,9 @@ run_catalog() {
     -backend-config="bucket=$STATE_BUCKET" \
     -backend-config="region=$STATE_REGION" \
     -backend-config="key=$STATE_KEY" \
-    -backend-config="use_lockfile=true" \
-    -input=false
+    -input=false \
+    #-backend-config="use_lockfile=true" 
+    
 
   terraform $APPLY_ACTION \
     -var="config_file=$CONFIG_FILE_ABS" \

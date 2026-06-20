@@ -12,7 +12,7 @@ locals {
   common_tags = merge({
     Name         = local.elb_name
     project_name = var.project_name
-    Ambiente     = var.environment
+    environment    = var.environment
     module       = "catalog/networking/elb"
   }, var.tags)
 }

@@ -34,6 +34,31 @@ module "elbs" {
 }
 
 #################################################
+# NLB → ALB ATTACHMENT
+#################################################
+module "nlb_alb_attachment" {
+  for_each = {
+    for a in local.elbs : a.name => a
+    if try(a.default_target_alb_name, null) != null
+  }
+
+  source = "../../../modules/catalog/networking/nlb-alb-attachment"
+
+  name    = each.value.name
+  nlb_arn = module.elbs[each.key].arn
+  alb_arn = module.elbs[each.value.default_target_alb_name].arn
+
+  port            = try(each.value.port, 80)
+  certificate_arn = try(local.certificate_arns[each.key], null)
+
+  vpc_id       = local.network.vpc_id
+  project_name = var.project_name
+  tags         = merge(local.project_tags, try(each.value.tags, {}))
+
+  depends_on = [module.elbs]
+}
+
+#################################################
 # NAMESPACES SERVICE DISCOVERY
 #################################################
 module "namespaces" {

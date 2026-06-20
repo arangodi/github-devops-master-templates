@@ -45,6 +45,11 @@ stages:
           - bash: |
               set -e
 
+              echo "===================================="
+              echo " Terraform Version"
+              echo "===================================="
+              terraform version
+
               INFRA_ROOT="$(Pipeline.Workspace)/$(Build.BuildId)/infra"
 
               CI_PIPELINE="$INFRA_ROOT/ci-azure-pipeline.yml"
@@ -290,6 +295,7 @@ stages:
                 fi
 
                 echo "✅ Terraform version: $(terraform version -json | grep -o '"terraform_version":"[^"]*"' | cut -d'"' -f4)"
+                terraform version
                 echo ""
 
                 # Mapear acción del pipeline a comando de Terraform

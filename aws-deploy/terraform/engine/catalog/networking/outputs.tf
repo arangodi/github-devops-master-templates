@@ -7,6 +7,7 @@ output "elbs" {
       listener_arn      = m.listener_arn
       security_group_id = m.security_group_id
       zone_id           = m.zone_id
+      load_balancer_type = try(local.elbs_map[k].load_balancer_type, "application")
     }
   }
 }
@@ -73,6 +74,23 @@ output "api_gateway_routes" {
       integration_type = m.integration_type
       connection_type  = m.connection_type
       methods_created  = m.methods_created
+    }
+  }
+}
+
+output "websocket_apis" {
+  description = "Map de WebSocket APIs — key es el nombre del API"
+  value = {
+    for k, m in module.websocket_api_base : k => {
+      api_id            = m.api_id
+      api_name          = m.api_name
+      api_endpoint      = m.api_endpoint
+      invoke_url        = m.invoke_url
+      stage_name        = m.stage_name
+      stage_id          = m.stage_id
+      vpc_link_id       = m.vpc_link_id
+      vpc_link_arn      = m.vpc_link_arn
+      security_group_id = m.security_group_id
     }
   }
 }

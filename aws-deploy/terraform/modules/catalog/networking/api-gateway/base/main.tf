@@ -40,6 +40,24 @@ locals {
     Ambiente     = var.environment
     module       = "catalog/networking/api-gateway/base"
   }, var.tags)
+
+  # AWS exige resource policy en APIs PRIVATE antes del primer deployment
+  private_api_resource_policy = var.endpoint_type == "PRIVATE" ? jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect    = "Allow"
+        Principal = "*"
+        Action    = "execute-api:Invoke"
+        Resource  = "arn:aws:execute-api:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:*/*/*/*"
+        Condition = {
+          StringEquals = {
+            "aws:SourceVpce" = var.vpc_endpoint_ids
+          }
+        }
+      }
+    ]
+  }) : null
 }
 
 #################################################
@@ -75,6 +93,16 @@ resource "aws_api_gateway_rest_api" "this" {
   }
 
   tags = local.common_tags
+}
+
+#################################################
+# RESOURCE POLICY — requerida para APIs PRIVATE
+#################################################
+resource "aws_api_gateway_rest_api_policy" "this" {
+  count = var.existing_api_name == null && var.endpoint_type == "PRIVATE" ? 1 : 0
+
+  rest_api_id = aws_api_gateway_rest_api.this[0].id
+  policy      = local.private_api_resource_policy
 }
 
 #################################################
@@ -187,9 +215,9 @@ resource "aws_security_group" "vpc_link" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  #tags = merge(local.common_tags, {
-  #  Name = lower("secg-${var.project_name}-${var.name}-vpclink")
-  #})
+  tags = merge(local.common_tags, {
+    Name = lower("secg-${var.project_name}-${var.name}-vpclink")
+  })
 }
 
 resource "aws_api_gateway_vpc_link" "this" {
@@ -199,7 +227,7 @@ resource "aws_api_gateway_vpc_link" "this" {
   description = "VPC Link para ${local.api_name}"
   target_arns = [var.nlb_arn]
 
-  #tags = local.common_tags
+  tags = local.common_tags
 }
 
 #################################################
@@ -265,7 +293,8 @@ resource "aws_api_gateway_deployment" "this" {
 
   depends_on = [
     aws_api_gateway_method.dummy_get,
-    aws_api_gateway_integration.dummy
+    aws_api_gateway_integration.dummy,
+    aws_api_gateway_rest_api_policy.this
   ]
 }
 

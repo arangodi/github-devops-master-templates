@@ -76,16 +76,13 @@ module "ecs_services" {
   cpu    = try(each.value.task.cpu, 256)
   memory = try(each.value.task.memory, "0.5GB")
 
-  image_repo_uri = (
-    try(each.value.task.use_placeholder, false)
-    ? try(each.value.task.placeholder_image, "public.ecr.aws/nginx/nginx:alpine")
-    : try(
-        module.ecr_repositories[each.value.name].uri,
-        each.value.task.image_repo_uri
-      )
+  image_repo_uri = try(
+    module.ecr_repositories[each.value.name].uri,
+    each.value.task.image_repo_uri,
+    try(each.value.task.placeholder_image, "public.ecr.aws/nginx/nginx:alpine")
   )
 
-  image_version_ssm_parameter = try(each.value.task.use_placeholder, false) ? null : try(
+  image_version_ssm_parameter = try(
     each.value.task.image_version_ssm,
     module.ecr_repositories[each.value.name].image_version_parameter_name,
     null
@@ -93,6 +90,7 @@ module "ecs_services" {
 
   image_version  = try(each.value.task.image_version, null)
   container_port = try(each.value.task.container_port, 8080)
+  environment_vars = try(each.value.task.environment_vars, {})
 
   containers            = try(each.value.task.containers, [])
   task_role_create      = try(each.value.task.task_role_create, true)
@@ -128,12 +126,16 @@ module "ecs_services" {
   autoscaling_role_arn     = module.ecs_clusters[each.value.cluster].autoscaling_role_arn
 
   secrets_arns = {
-    for secret_name in try(each.value.secrets, []) :
+    for secret_name in try(each.value.task.secrets, []) :
     secret_name => try(
       data.terraform_remote_state.security.outputs.secrets[secret_name].secret_arn,
+      data.aws_secretsmanager_secret.external[secret_name].arn,
       null
     )
   }
+
+  secrets = try(each.value.task.secrets, [])
+
 
   use_placeholder_image = try(each.value.task.use_placeholder, false)
   placeholder_image     = try(each.value.task.placeholder_image, "public.ecr.aws/nginx/nginx:alpine")

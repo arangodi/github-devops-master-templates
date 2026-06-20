@@ -89,7 +89,7 @@ devops-master-templates/
 |-----------|------|-------------|-----------|---------|---------|
 | `language` | string | Lenguaje de programación | ✓ | `cs`, `go`, `java`, `node`, `python` | ✗ |
 | `work_path` | string | Ruta del directorio de trabajo | ✓ | ✗ | ✗ |
-| `containerized` | string | Tipo de containerización | ✗ | `ecs`, `eks`, `none` | `none` |
+| `containerized` | string | Tipo de containerización | ✗ | `true`, `false` | `false` |
 | `cs_use_nuget_config` | boolean | Usa configuración NuGet (C# solo) | ✗ | `true`, `false` | `false` |
 
 
@@ -100,7 +100,7 @@ devops-master-templates/
 Análisis de proyectos .NET usando el scanner de dotnet.
 
 **Requisitos:**
-- Archivo `.sln` en el directorio raíz
+- Archivo `.sln` o `.slnx` en el directorio raíz
 - Versión de .NET especificada
 
 **Variables necesarias:**
@@ -108,7 +108,7 @@ Análisis de proyectos .NET usando el scanner de dotnet.
 - `slnFile` - Nombre del archivo solution con extensión
 - `nugetFile` - Nombre del archivo de configuración de NuGet (ej: nuget.config), **requerido si el parámetro `cs_use_nuget_config` es `true`**
 
-**Ejemplo:**
+**Ejemplos:**
 ```yaml
 trigger:
   branches:
@@ -131,14 +131,6 @@ resources:
     ref: validate
   
 variables:
-  - name: stage
-    ${{ if eq(variables['Build.SourceBranchName'], 'development') }}:
-      value: dev
-    ${{ elseif eq(variables['Build.SourceBranchName'], 'release') }}:
-      value: uat
-    ${{ elseif eq(variables['Build.SourceBranchName'], 'master') }}:
-      value: pdn
-
   - name: projectName
     value: project-name
   - name: netVersion
@@ -153,6 +145,46 @@ stages:
     parameters:
       language: cs
       work_path: $(System.DefaultWorkingDirectory)/$(project_dir)
+```
+
+```yaml
+trigger:
+  branches:
+    include:
+      - 'development'
+      - 'release'
+      - 'master'
+  paths:
+    exclude:
+      - README.md
+      - ci-azure-pipeline.yml
+ 
+pool: 'BTG Colombia - Azure DevOps'
+ 
+resources:
+  repositories:
+  - repository: devops-master-templates
+    type: git
+    name: devops-master-templates
+    ref: master
+
+variables:
+  - name: serviceName
+    value: maestros-unicos-api
+  - name: imageVersion
+    value: $(Build.BuildNumber)
+
+  - name: netVersion
+    value: 10.0
+  - name: slnFile
+    value: MaestrosUnicos.API.sln
+ 
+stages:
+  - template: ci-pipeline.yml@devops-master-templates
+    parameters:
+      language: cs
+      work_path: $(System.DefaultWorkingDirectory)
+      containerized: true
 ```
 
 ---
@@ -191,14 +223,6 @@ resources:
     ref: validate
   
 variables:
-  - name: stage
-    ${{ if eq(variables['Build.SourceBranchName'], 'development') }}:
-      value: dev
-    ${{ elseif eq(variables['Build.SourceBranchName'], 'release') }}:
-      value: uat
-    ${{ elseif eq(variables['Build.SourceBranchName'], 'master') }}:
-      value: pdn
-
   - name: goVersion
     value: 1.25
 
@@ -223,22 +247,25 @@ Análisis básico de proyectos Java usando el scanner CLI.
 trigger:
   branches:
     include:
-      - 'development'
-      - 'release'
-      - 'master'
+      - development
+      - qc
+      - release
+      - master
   paths:
     exclude:
-      - README.md
       - ci-azure-pipeline.yml
 
-pool: 'BTG Colombia - Azure DevOps'
+pool:
+  name: "BTG Colombia - Azure DevOps"
+  demands:
+    - Agent.Name -equals Agent-10-27-157-29
 
 resources:
   repositories:
-  - repository: devops-master-templates
-    type: git
-    name: devops-master-templates
-    ref: validate
+    - repository: devops-master-templates
+      type: git
+      name: devops-master-templates
+      ref: temp/onboarding_validate
 
 variables:
   - name: stage
@@ -247,13 +274,41 @@ variables:
     ${{ elseif eq(variables['Build.SourceBranchName'], 'release') }}:
       value: uat
     ${{ elseif eq(variables['Build.SourceBranchName'], 'master') }}:
-      value: pdn
+      value: prod
+    ${{ else }}:
+      value: dev
+
+  - name: awsCredentials
+    value: SVC-SERVICE-IDP-DIGITAL-EXPERIENCES-${{ upper(variables.stage) }}
+
+  - name: region
+    value: us-east-1
+
+  - name: project
+    value: onboarding-invitation
+
+  - name: ecrName
+    value: ecr-onboarding-tf-invitation
+
+  - name: serviceName
+    value: invitation
+
+  - name: version
+    value: $(Build.BuildNumber)
+
+  - name: dockerfilePath
+    value: Dockerfile
+
+  - name: buildContext
+    value: .
 
 stages:
   - template: ci-pipeline.yml@devops-master-templates
     parameters:
       language: java
       work_path: $(System.DefaultWorkingDirectory)
+      containerized: eks
+      java_multimodule_coverage: true
 ```
 
 ---
@@ -297,14 +352,6 @@ resources:
     ref: validate
 
 variables:
-  - name: stage
-    ${{ if eq(variables['Build.SourceBranchName'], 'development') }}:
-      value: dev
-    ${{ elseif eq(variables['Build.SourceBranchName'], 'release') }}:
-      value: uat
-    ${{ elseif eq(variables['Build.SourceBranchName'], 'master') }}:
-      value: pdn
-
   - name: nodeVersion
     value: '22'
 
@@ -353,14 +400,6 @@ resources:
     ref: validate
   
 variables:
-  - name: stage
-    ${{ if eq(variables['Build.SourceBranchName'], 'development') }}:
-      value: dev
-    ${{ elseif eq(variables['Build.SourceBranchName'], 'release') }}:
-      value: uat
-    ${{ elseif eq(variables['Build.SourceBranchName'], 'master') }}:
-      value: pdn
-
   - name: pythonVersion
     value: '3.9'
 

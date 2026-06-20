@@ -56,11 +56,12 @@ locals {
         path_key        = pk
         method          = m
         api_key_required = try(p.api_key_required, false)
-        integration_uri = lookup(
+        has_proxy_param  = try(p.integration_path, null) != null && can(regex("\\{proxy\\}", p.integration_path))
+        integration_uri = "${lookup(
           local.integration_uri_map,
           p.integration_uri != null ? p.integration_uri : var.integration_uri,
           p.integration_uri != null ? p.integration_uri : var.integration_uri
-        )
+        )}${try(p.integration_path, "")}"
       }
     ]
   ])
@@ -262,6 +263,10 @@ resource "aws_api_gateway_method" "methods" {
   authorizer_id    = try(local.authorizer_config.authorizer_id, null)
   api_key_required = each.value.api_key_required
 
+  request_parameters = each.value.has_proxy_param ? {
+    "method.request.path.proxy" = true
+  } : {}
+
   depends_on = [
     aws_api_gateway_resource.paths_level_0,
     aws_api_gateway_resource.paths_level_1,
@@ -287,7 +292,12 @@ resource "aws_api_gateway_integration" "integrations" {
   connection_type         = var.connection_type
   connection_id           = var.connection_type == "VPC_LINK" ? var.vpc_link_id : null
   uri                     = each.value.integration_uri
+
+  request_parameters = each.value.has_proxy_param ? {
+    "integration.request.path.proxy" = "method.request.path.proxy"
+  } : {}
 }
+
 
 resource "aws_api_gateway_method_response" "response_200" {
   for_each = local.flat_methods_map

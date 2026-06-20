@@ -5,8 +5,24 @@ output "s3_buckets" {
   description = "Buckets S3 creados"
   value = {
     for name, bucket in module.s3_buckets : name => {
-      bucket_name = bucket.bucket_name
-      bucket_arn  = bucket.bucket_arn
+      # Identidad
+      bucket_id                   = bucket.bucket_id
+      bucket_name                 = bucket.bucket_name
+      bucket_arn                  = bucket.bucket_arn
+
+      # Acceso
+      bucket_domain_name          = bucket.bucket_domain_name
+      bucket_regional_domain_name = bucket.bucket_regional_domain_name
+      bucket_region               = bucket.bucket_region
+
+      # Configuración
+      versioning_enabled          = try(local.s3_buckets_map[name].versioning, false)
+      encryption_enabled          = try(local.s3_buckets_map[name].encryption, true)
+      block_public_access         = try(local.s3_buckets_map[name].block_public_access, true)
+      logging_enabled             = try(local.s3_buckets_map[name].logging, null) != null
+      replication_enabled         = try(local.s3_buckets_map[name].replication, null) != null
+      notifications_enabled       = try(local.s3_buckets_map[name].notifications, null) != null
+      lifecycle_rules_count       = length(try(local.s3_buckets_map[name].lifecycle_rules, []))
     }
   }
 }

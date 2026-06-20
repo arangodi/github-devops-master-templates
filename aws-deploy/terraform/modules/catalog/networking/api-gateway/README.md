@@ -481,6 +481,7 @@ Cliente → GET /api/resource (VPC_LINK)
 - `enable_custom_domain: true` requiere `custom_domain_certificate_arn`
 - `existing_user_pool_id` y `cognito_domain_prefix` son mutuamente excluyentes
 - `endpoint_type: PRIVATE` requiere `vpc_endpoint_ids`
+- `endpoint_type: PRIVATE` crea automáticamente una resource policy que permite `execute-api:Invoke` solo desde los VPC endpoints declarados
 - `{proxy+}` captura todos los sub-paths
 
 ---

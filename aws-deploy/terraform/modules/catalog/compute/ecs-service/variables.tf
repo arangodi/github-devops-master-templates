@@ -1,3 +1,9 @@
+variable "environment_vars" {
+  description = "Variables de entorno para el contenedor principal"
+  type        = map(string)
+  default     = {}
+}
+
 variable "name" {
   description = "Nombre del servicio"
   type        = string
@@ -64,9 +70,9 @@ variable "execution_role_arn" {
 
 
 variable "enable_container_health_check" {
-  description = "Habilitar health check a nivel de contenedor"
+  description = "Deshabilitar health check a nivel de contenedor"
   type        = bool
-  default     = false
+  default     = true
 }
 
 variable "health_check_path" {

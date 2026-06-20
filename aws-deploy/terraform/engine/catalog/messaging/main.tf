@@ -19,7 +19,7 @@ locals {
   encode_filter_policy = {
     for key, value in merge(local.subscription_filter_policy_inputs, local.external_sns_subscriptions) : key => (
       try(value.filter_policy, null) == null ? null : (
-        type(value.filter_policy) == "string" ? value.filter_policy : jsonencode(value.filter_policy)
+        can(jsondecode(value.filter_policy)) ? value.filter_policy : jsonencode(value.filter_policy)
       )
     )
   }

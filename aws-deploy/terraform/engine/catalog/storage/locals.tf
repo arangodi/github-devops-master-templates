@@ -26,6 +26,7 @@ locals {
   # STORAGE
   ############################################
   s3_buckets = try(local.catalog.storage.s3_buckets, [])
+  s3_buckets_map = { for b in local.s3_buckets : b.name => b }
   efs_filesystems = try(local.config.catalog.storage.efs_filesystems, [])
 
 }

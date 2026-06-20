@@ -36,11 +36,11 @@ locals {
   ############################################
   safe_environment = replace(lower(var.environment), ".", "-")
 
-  ecs_clusters     = coalesce(try(local.catalog.compute.ecs_clusters, null), [])
-  ecs_services     = coalesce(try(local.catalog.compute.ecs_services, null), [])
-  ecr_repositories = coalesce(try(local.catalog.compute.ecr_repositories, null), [])
-  eks_clusters     = coalesce(try(local.catalog.compute.eks_clusters, null), [])
-  ec2_instances    = coalesce(try(local.catalog.compute.ec2_instances, null), [])
+  ecs_clusters     = try(local.catalog.compute.ecs_clusters, [])
+  ecs_services     = try(local.catalog.compute.ecs_services, [])
+  ecr_repositories = try(local.catalog.compute.ecr_repositories, [])
+  eks_clusters     = try(local.catalog.compute.eks_clusters, [])
+  ec2_instances    = try(local.catalog.compute.ec2_instances, [])
 
   ecs_clusters_map = {
     for c in local.ecs_clusters : c.name => c
@@ -65,17 +65,9 @@ locals {
   )
 
   ############################################
-  # ECS SERVICES — desde directorio de servicios
+  # ECS SERVICES
   ############################################
-  services_dir = "${dirname(dirname(dirname(var.config_file)))}/${var.account}/services/${var.environment}/${var.project_name}"
-
-  dir_services = length(try(fileset(local.services_dir, "*.yml"), [])) > 0 ? [
-    for f in fileset(local.services_dir, "*.yml") :
-    yamldecode(file("${local.services_dir}/${f}"))
-  ] : []
-
-  # Usa services del YAML
-  raw_services = length(local.ecs_services) > 0 ? local.ecs_services : local.dir_services
+  raw_services = local.ecs_services
 
   # Enriquece cada servicio con los valores de infra 
   final_ecs_services = [

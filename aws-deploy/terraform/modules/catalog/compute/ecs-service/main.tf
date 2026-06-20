@@ -18,11 +18,9 @@ locals {
 
   ecr_image_uri = "${var.image_repo_uri}:${local.resolved_image_version}"
 
-  use_real_image = !var.use_placeholder_image && local.resolved_image_version != "latest"
+  use_real_image = local.resolved_image_version != "latest"
 
-  final_image_uri = var.use_placeholder_image ? var.placeholder_image : (
-    local.use_real_image ? local.ecr_image_uri : var.placeholder_image
-  )
+  final_image_uri = local.use_real_image ? local.ecr_image_uri : var.placeholder_image
 
   common_tags = merge({
     Name         = local.service_full_name
@@ -132,7 +130,11 @@ resource "aws_ecs_task_definition" "this" {
       name  = var.name
       image = local.final_image_uri
 
-      command = var.use_placeholder_image ? [
+      environment = [
+      for k, v in var.environment_vars : { name = k, value = v }
+      ]
+
+      command = !local.use_real_image ? [
         "/bin/sh", "-c",
         "echo 'server { listen ${var.container_port}; location / { return 200; } }' > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"
       ] : null
@@ -180,7 +182,7 @@ resource "aws_ecs_task_definition" "this" {
         }
       }
 
-      healthCheck = var.enable_container_health_check && !var.use_placeholder_image ? {
+      healthCheck = var.enable_container_health_check ? {
         command     = ["CMD-SHELL", "curl -f http://localhost:${var.container_port}${var.health_check_path} || exit 1"]
         interval    = 30
         timeout     = 5
@@ -320,18 +322,16 @@ resource "aws_vpc_security_group_egress_rule" "all" {
 }
 
 #################################################
-# TARGET GROUP — simple
+# LISTENER RULE — simple (comportamiento actual)
 #################################################
 resource "aws_lb_target_group" "this" {
   count = var.elb_listener_arn != null && length(var.target_groups) == 0 ? 1 : 0
-
   name             = lower("${var.project_name}-${var.name}")
   port             = var.container_port
   protocol         = "HTTP"
   protocol_version = "HTTP1"
   target_type      = var.launch_type == "EC2" ? "instance" : "ip"
   vpc_id           = var.vpc_id
-
   health_check {
     path                = var.health_check_path
     interval            = 30
@@ -339,35 +339,14 @@ resource "aws_lb_target_group" "this" {
     healthy_threshold   = 2
     unhealthy_threshold = 2
   }
-
   deregistration_delay = 60
-
   tags = merge(local.common_tags, {
     Name = "elb-${lower(var.project_name)}-${lower(var.name)}-tg"
   })
-}
 
-#################################################
-# LISTENER RULE — simple (comportamiento actual)
-#################################################
-resource "aws_lb_listener_rule" "this" {
-  count = var.elb_listener_arn != null && length(var.target_groups) == 0 ? 1 : 0
-
-  listener_arn = var.elb_listener_arn
-  priority     = var.listener_priority
-
-  action {
-    type             = "forward"
-    target_group_arn = aws_lb_target_group.this[0].arn
+  lifecycle {
+    create_before_destroy = true
   }
-
-  condition {
-    path_pattern {
-      values = ["${var.base_path}/*"]
-    }
-  }
-
-  tags = local.common_tags
 }
 
 #################################################
@@ -627,8 +606,8 @@ resource "aws_iam_role_policy" "secrets_access" {
           "secretsmanager:DescribeSecret"
         ]
         Resource = [
-          for secret_name in var.secrets :
-          "arn:aws:secretsmanager:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:secret:${lower(var.project_name)}-${secret_name}-*"
+          for secret_name, secret_arn in var.secrets_arns :
+          secret_arn != null ? "${secret_arn}*" : "arn:aws:secretsmanager:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:secret:${lower(var.project_name)}-${secret_name}-*"
         ]
       }
     ]

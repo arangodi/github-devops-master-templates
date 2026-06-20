@@ -29,10 +29,11 @@ locals {
   ############################################
   # NETWORKING
   ############################################
-  elbs           = coalesce(try(local.catalog.networking.elbs, null), [])
-  namespaces     = coalesce(try(local.catalog.networking.namespaces, null), [])
-  eni_interfaces = coalesce(try(local.catalog.networking.eni_interfaces, null), [])
-  api_gateways   = coalesce(try(local.catalog.networking.api_gateways, null), [])
+  elbs           = try(local.catalog.networking.elbs, [])
+  elbs_map       = { for e in local.elbs : e.name => e }
+  namespaces     = try(local.catalog.networking.namespaces, [])
+  eni_interfaces = try(local.catalog.networking.eni_interfaces, [])
+  api_gateways   = try(local.catalog.networking.api_gateways, [])
 
   api_gateways_map = {
     for a in local.api_gateways : a.name => a
@@ -47,7 +48,7 @@ locals {
     ]
   ])
   
-  api_gateway_routes_flat = coalesce(try(local.catalog.networking.api_gateway_routes, null), [])
+  api_gateway_routes_flat = try(local.catalog.networking.api_gateway_routes, [])
 
   api_gateway_routes = concat(
     local.api_gateway_routes_nested,
@@ -88,7 +89,7 @@ locals {
   ############################################
   # WEBSOCKET API
   ############################################
-  websocket_apis = coalesce(try(local.catalog.networking.websocket_apis, null), [])
+  websocket_apis = try(local.catalog.networking.websocket_apis, [])
   websocket_apis_map = {
     for a in local.websocket_apis : a.name => a
   }
@@ -102,7 +103,7 @@ locals {
     ]
   ])
 
-  websocket_routes_flat = coalesce(try(local.catalog.networking.websocket_routes, null), [])
+  websocket_routes_flat = try(local.catalog.networking.websocket_routes, [])
   websocket_routes = concat(
     local.websocket_routes_nested,
     [

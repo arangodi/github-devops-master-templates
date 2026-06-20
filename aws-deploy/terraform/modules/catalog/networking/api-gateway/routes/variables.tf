@@ -70,6 +70,7 @@ variable "paths" {
     methods         = list(string)
     parent_key      = string
     integration_uri = optional(string, null)
+    integration_path = optional(string, null)
     api_key_required = optional(bool, false)
     existing_resource_id = optional(string, null)
   }))

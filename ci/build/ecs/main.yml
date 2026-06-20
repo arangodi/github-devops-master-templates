@@ -81,6 +81,6 @@ steps:
       regionName: $(region)
       parameterName: "$(ssmName)"
       parameterType: "String"
-      parameterValue: $(version)
+      parameterValue: $(imageVersion)
       overwrite: true
       createNew: true
